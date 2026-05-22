@@ -1,6 +1,7 @@
 import express from "express";
 import { logger } from "@repo/logger";
 import cors from "cors";
+import cookieParser from 'cookie-parser'
 
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { generateOpenApiDocument, createOpenApiExpressMiddleware } from "trpc-to-openapi";
@@ -17,6 +18,9 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
   baseUrl: env.BASE_URL.concat("/api"),
 });
 
+app.use(cookieParser());
+
+//This is seting cookies for different origins
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
