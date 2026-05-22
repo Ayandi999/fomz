@@ -6,6 +6,7 @@ import {
   boolean,
   text,
 } from "drizzle-orm/pg-core";
+import { string } from "zod";
 
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -14,7 +15,8 @@ export const usersTable = pgTable("users", {
 
   email: varchar("email", { length: 255 }).notNull().unique(),
   emailVerified: boolean("email_verified").default(false),
-
+  salt : text(),
+  password:text(),
   profileImageUrl: text("profile_image_url"),
 
   createdAt: timestamp("created_at").defaultNow(),
