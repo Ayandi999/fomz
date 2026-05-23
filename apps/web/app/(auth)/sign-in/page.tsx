@@ -1,8 +1,9 @@
 "use client";
 
-import {useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useSignin } from "~/hooks/api/auth/useSignin";
-import {useRouter} from 'next/navigation'
+import { useRouter } from "next/navigation";
 
 function signinpage() {
   const [email, setEmail] = useState("");
@@ -69,6 +70,16 @@ function signinpage() {
         >
           Sign In
         </button>
+
+        <p className="text-xs text-muted-foreground uppercase tracking-wider text-center border-t-2 border-neutral-900 dark:border-neutral-100 pt-4">
+          New here?{" "}
+          <Link
+            href="/sign-up"
+            className="font-bold text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+          >
+            Sign up first
+          </Link>
+        </p>
       </form>
     </div>
   );

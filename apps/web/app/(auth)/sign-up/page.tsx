@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSignup } from "~/hooks/api/auth/useSignup";
 function signuppage() {

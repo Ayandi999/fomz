@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "~/hooks/api/auth/useUser";
+import { useCreateForm } from "~/hooks/api/forms/useCreateForm";
 
 type FormStatus = "draft" | "published";
 
@@ -13,23 +14,6 @@ type FormItem = {
   responses: number;
   updatedAt: string;
 };
-
-const INITIAL_FORMS: FormItem[] = [
-  {
-    id: "1",
-    title: "Customer feedback survey",
-    status: "published",
-    responses: 128,
-    updatedAt: "2 days ago",
-  },
-  {
-    id: "2",
-    title: "Event registration",
-    status: "draft",
-    responses: 0,
-    updatedAt: "5 days ago",
-  },
-];
 
 const inputClass =
   "flex h-10 w-full rounded-none border-2 border-neutral-300 dark:border-neutral-700 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-neutral-900 dark:focus-visible:border-neutral-100 disabled:cursor-not-allowed disabled:opacity-50";
@@ -59,11 +43,13 @@ function StatusBadge({ status }: { status: FormStatus }) {
 
 export default function DashboardPage() {
   const { user, isLoading, isFetched } = useUser();
+  const { createFormAsync, isPending, isError, error } = useCreateForm();
   const router = useRouter();
 
-  const [forms, setForms] = useState<FormItem[]>(INITIAL_FORMS);
+  const [forms, setForms] = useState<FormItem[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
 
   useEffect(() => {
     if (isFetched && !isLoading && !user?.id) {
@@ -71,14 +57,17 @@ export default function DashboardPage() {
     }
   }, [user, isLoading, isFetched, router]);
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const title = newTitle.trim();
     if (!title) return;
 
+    const description = newDescription.trim() || undefined;
+    const { id } = await createFormAsync({ title, description });
+
     setForms((prev) => [
       {
-        id: crypto.randomUUID(),
+        id,
         title,
         status: "draft",
         responses: 0,
@@ -87,6 +76,7 @@ export default function DashboardPage() {
       ...prev,
     ]);
     setNewTitle("");
+    setNewDescription("");
     setShowCreate(false);
   };
 
@@ -249,16 +239,41 @@ export default function DashboardPage() {
                 placeholder="e.g. Product launch survey"
                 required
                 autoFocus
+                disabled={isPending}
               />
             </div>
 
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Description (optional)
+              </label>
+              <textarea
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                className={`${inputClass} min-h-20 py-2 resize-none`}
+                placeholder="What is this form for?"
+                disabled={isPending}
+              />
+            </div>
+
+            {isError && (
+              <p className="text-xs font-bold uppercase tracking-wider text-red-600">
+                {error?.message ?? "Failed to create form"}
+              </p>
+            )}
+
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button type="submit" className={`${buttonPrimaryClass} flex-1`}>
-                Create
+              <button
+                type="submit"
+                disabled={isPending}
+                className={`${buttonPrimaryClass} flex-1`}
+              >
+                {isPending ? "Creating…" : "Create"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
+                disabled={isPending}
                 className={`${buttonSecondaryClass} flex-1`}
               >
                 Cancel
