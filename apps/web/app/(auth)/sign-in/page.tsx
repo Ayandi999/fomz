@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import {useState } from "react";
 import { useSignin } from "~/hooks/api/auth/useSignin";
+import {useRouter} from 'next/navigation'
 
 function signinpage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { siginInUserWithEmailAndPasswordAsync } = useSignin();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,7 +16,8 @@ function signinpage() {
       email,
       password,
     });
-    //console.log(id);
+    //redirect to dashboard
+    router.replace('/dashboard');
   };
 
   return (

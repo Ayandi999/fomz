@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/router";
 import { useState } from "react";
 import { useSignup } from "~/hooks/api/auth/useSignup";
 function signuppage() {
@@ -7,6 +8,7 @@ function signuppage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const { createUserWithEmailAndPasswordAsync } = useSignup();
+    const router = useRouter();
     //Me bringing the backend funcitno to frontend
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -16,7 +18,8 @@ function signuppage() {
             email,
             password
         })
-        console.log(id)
+        //redirect
+        router.replace('/dashboard');
     };
 
     return (
