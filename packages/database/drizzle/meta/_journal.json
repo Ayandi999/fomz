@@ -15,6 +15,13 @@
       "when": 1779430281802,
       "tag": "0001_groovy_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779514251017,
+      "tag": "0002_dashing_paper_doll",
+      "breakpoints": true
     }
   ]
 }
