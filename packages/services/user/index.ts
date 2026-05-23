@@ -9,7 +9,7 @@ import {
 import {db,eq} from '@repo/database';
 import {usersTable} from '@repo/database/models/user'
 import {createHmac, randomBytes} from 'node:crypto'
-import jwt from 'jsonwebtoken';
+import * as JWT from 'jsonwebtoken';
 import { env } from '../env';
 
 class userService{
@@ -20,11 +20,37 @@ class userService{
     }
     private async generateToken(payload:GenerateUserTokenPayloadType){
         const data = await generateuserTokenPayload.parseAsync(payload)
-        const token = jwt.sign({data},env.JWT_SECRET);
+        const token = JWT.sign({data},env.JWT_SECRET);
         return {token}; //This is so that we can extend this object in the future
     }
     private async generateHash(salt:string,password:string){
         return createHmac('sha256',salt).update(password).digest('hex')
+    }
+    private async getUsetInfoById(id:string){
+        const user = await db.select({
+            id:usersTable.id,
+            email:usersTable.email,
+            fullName:usersTable.fullName,
+            profileImageUrl:usersTable.profileImageUrl
+        }).from(usersTable).where(eq(usersTable.id,id))
+        if(!user || user.length === 0 || !user[0]) throw new Error("User not found")
+        return user[0];
+    }
+    public async verifyUserToken(token:string):Promise<{
+        id:string,
+        email:string,
+        fullName:string,
+        profileImageUrl:string | null
+    }>{
+        try{
+            const decoded = JWT.verify(token,env.JWT_SECRET) as { data: GenerateUserTokenPayloadType };
+            const {id} = decoded.data
+            const userInfo = await this.getUsetInfoById(id);
+            return userInfo
+        }catch(error){
+            //Why throw a different error? because i don't want anyone to know that i am using this library
+            throw new Error("Invalid Token")
+        }
     }
     public async createUserWithEmailAndPassword(payload : CreateUserWithEmailAndPasswordInput){
         const {email,password,fullName} = await createUserWithEmailAndPasswordInput.parseAsync(payload)

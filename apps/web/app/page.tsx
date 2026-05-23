@@ -1,13 +1,25 @@
-import { api } from "~/trpc/server";
-import {trpc} from '~/trpc/client'
+"use client";
 
-export default async function Home() {
-  //const {data} = trpc.ayandipRoute.useQuery({email:'ayandip12111113@gmail.com'}) //Using hooks we can do this aas well hooks are gebnerated internally
-  //const {message} = await api.ayandipRoute.query({email:'ayandip123@gmail.com'})
+import { useEffect } from 'react';
+import {useUser} from '../hooks/api/auth/useUser'
+import { useRouter } from 'next/navigation';
+
+export default function Home() {
+
+  const {user} = useUser();
+  const router = useRouter();
+
+  useEffect(()=>{
+    if(user && user.id){
+      router.replace('/dashboard'); //we shall make this later
+    }else{
+      router.replace('/sign-in')
+    }
+  },[user])
   return (
     <main className="min-h-screen min-w-screen flex justify-center items-center">
       <div>
-        <h1>Hello World</h1>
+        <h1>{JSON.stringify(user,null,2)}</h1>
       </div>
     </main>
   );
