@@ -17,3 +17,20 @@ export const deleteFormOutputModel = z.object({
   success: z.boolean().describe("Whether form was deleted successfully"),
 });
 
+export const getUserFormsInputModel = z.undefined();
+
+export const getUserFormsOutputModel = z.array(
+  z.object({
+    id: z.string().uuid().describe("Id of the form"),
+    title: z.string().describe("Title of the form"),
+    description: z.string().nullable().optional().describe("Description of the form"),
+    slug: z.string().describe("Unique slug of the form"),
+    isPublished: z.boolean().describe("Whether the form is published"),
+    visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).nullable().describe("Visibility level"),
+    validTill: z.date().nullable().optional().describe("Expiration date"),
+    createdAt: z.date().nullable().optional().describe("Form creation date"),
+    updatedAt: z.date().nullable().optional().describe("Form update date"),
+  })
+);
+
+

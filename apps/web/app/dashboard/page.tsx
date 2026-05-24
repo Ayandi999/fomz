@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "~/hooks/api/auth/useUser";
 import { useCreateForm } from "~/hooks/api/forms/useCreateForm";
 import { useDeleteForm } from "~/hooks/api/forms/useDeleteForm";
+import { useUserForms } from "~/hooks/api/forms/useUserForms";
 
 type FormStatus = "draft" | "published";
 
@@ -43,36 +44,23 @@ function StatusBadge({ status }: { status: FormStatus }) {
 }
 
 export default function DashboardPage() {
-  const { user, isLoading, isFetched } = useUser();
+  const { user, isLoading: isUserLoading, isFetched } = useUser();
   const { createFormAsync, isPending, isError, error } = useCreateForm();
   const { deleteFormAsync } = useDeleteForm();
+  const { forms: realForms, isLoading: isFormsLoading, refetch: refetchForms } = useUserForms();
   const router = useRouter();
 
-  const [forms, setForms] = useState<FormItem[]>([
-    {
-      id: "dummy-1",
-      title: "Customer Feedback Form",
-      status: "published",
-      responses: 12,
-      updatedAt: "2 hours ago",
-    },
-    {
-      id: "dummy-2",
-      title: "Product Launch Survey",
-      status: "draft",
-      responses: 0,
-      updatedAt: "1 day ago",
-    }
-  ]);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
 
+  const displayForms = realForms || [];
+
   useEffect(() => {
-    if (isFetched && !isLoading && !user?.id) {
+    if (isFetched && !isUserLoading && !user?.id) {
       router.replace("/sign-in");
     }
-  }, [user, isLoading, isFetched, router]);
+  }, [user, isUserLoading, isFetched, router]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,18 +68,9 @@ export default function DashboardPage() {
     if (!title) return;
 
     const description = newDescription.trim() || undefined;
-    const { id } = await createFormAsync({ title, description });
+    await createFormAsync({ title, description });
+    await refetchForms();
 
-    setForms((prev) => [
-      {
-        id,
-        title,
-        status: "draft",
-        responses: 0,
-        updatedAt: "Just now",
-      },
-      ...prev,
-    ]);
     setNewTitle("");
     setNewDescription("");
     setShowCreate(false);
@@ -99,16 +78,14 @@ export default function DashboardPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      if (!id.startsWith("dummy-")) {
-        await deleteFormAsync({ formId: id });
-      }
-      setForms((prev) => prev.filter((f) => f.id !== id));
+      await deleteFormAsync({ formId: id });
+      await refetchForms();
     } catch (err) {
       console.error("Failed to delete form:", err);
     }
   };
 
-  if (isLoading || !user?.id) {
+  if (isUserLoading || isFormsLoading || !user?.id) {
     return (
       <div className="min-h-screen w-full flex flex-col justify-center items-center p-4">
         <div className={`${cardClass} w-full max-w-md items-center`}>
@@ -120,8 +97,8 @@ export default function DashboardPage() {
     );
   }
 
-  const publishedCount = forms.filter((f) => f.status === "published").length;
-  const totalResponses = forms.reduce((sum, f) => sum + f.responses, 0);
+  const publishedCount = displayForms.filter((f) => f.isPublished).length;
+  const totalResponses = 0;
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center p-4 py-8">
@@ -158,12 +135,11 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">            <div className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-1">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Total Forms
               </span>
-              <span className="text-2xl font-extrabold">{forms.length}</span>
+              <span className="text-2xl font-extrabold">{displayForms.length}</span>
             </div>
             <div className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-1">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -179,7 +155,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </header>
-
+ 
         {/* Forms list */}
         <section className={cardClass}>
           <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4">
@@ -190,8 +166,8 @@ export default function DashboardPage() {
               Create, edit, and share conversational forms
             </p>
           </div>
-
-          {forms.length === 0 ? (
+ 
+          {displayForms.length === 0 ? (
             <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center gap-4 text-center">
               <p className="text-sm text-muted-foreground uppercase tracking-wider">
                 No forms yet — create your first one
@@ -206,7 +182,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <ul className="flex flex-col gap-3">
-              {forms.map((form) => (
+              {displayForms.map((form) => (
                 <li
                   key={form.id}
                   className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between hover:border-neutral-900 dark:hover:border-neutral-100 transition-colors"
@@ -216,10 +192,10 @@ export default function DashboardPage() {
                       <h3 className="font-bold uppercase tracking-tight truncate">
                         {form.title}
                       </h3>
-                      <StatusBadge status={form.status} />
+                      <StatusBadge status={form.isPublished ? "published" : "draft"} />
                     </div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                      {form.responses} responses · Updated {form.updatedAt}
+                      0 responses · Updated {form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : "Just now"}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 shrink-0">

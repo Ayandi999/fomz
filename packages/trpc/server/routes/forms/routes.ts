@@ -3,6 +3,8 @@ import {
   createFormOutputModel,
   deleteFormInputModel,
   deleteFormOutputModel,
+  getUserFormsInputModel,
+  getUserFormsOutputModel,
 } from "./model";
 import { publicProcedure, router } from "../../trpc";
 import { formService, userService } from "../../services";
@@ -60,6 +62,26 @@ export const formsRouter = router({
       });
 
       return { success };
+    }),
+
+  getUserForms: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/getUserForms",
+        tags: TAGS,
+      },
+    })
+    .input(getUserFormsInputModel)
+    .output(getUserFormsOutputModel)
+    .query(async ({ ctx }) => {
+      const token = getAuthenticationCookie(ctx);
+      if (!token) throw new Error("User is not logged in");
+
+      const { id: createdBy } = await userService.verifyUserToken(token);
+
+      const forms = await formService.getUserForms(createdBy);
+      return forms;
     }),
 });
 

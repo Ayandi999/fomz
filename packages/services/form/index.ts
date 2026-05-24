@@ -4,7 +4,7 @@ import {
   type DeleteFormInput,
   deleteFormInput,
 } from "./model";
-import { db, and, eq } from "@repo/database";
+import { db, and, eq, desc } from "@repo/database";
 import { formsTable } from "@repo/database/models/form";
 
 class formService {
@@ -58,6 +58,26 @@ class formService {
     return {
       success: true,
     };
+  }
+
+  public async getUserForms(createdBy: string) {
+    const forms = await db
+      .select({
+        id: formsTable.formId,
+        title: formsTable.title,
+        description: formsTable.description,
+        slug: formsTable.slug,
+        isPublished: formsTable.isPublished,
+        visibility: formsTable.visibility,
+        validTill: formsTable.validTill,
+        createdAt: formsTable.createdAt,
+        updatedAt: formsTable.updatedAt,
+      })
+      .from(formsTable)
+      .where(eq(formsTable.createdBy, createdBy))
+      .orderBy(desc(formsTable.createdAt));
+
+    return forms;
   }
 }
 
