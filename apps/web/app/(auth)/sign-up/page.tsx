@@ -22,8 +22,8 @@ function signuppage() {
             email,
             password
         })
-        //redirect
-        router.replace('/dashboard');
+        // redirect to pending verification screen
+        router.replace(`/verify-pending?email=${encodeURIComponent(email)}`);
     };
 
     const handleGoogleSignIn = () => {

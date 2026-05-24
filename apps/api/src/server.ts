@@ -34,8 +34,52 @@ app.get("/", (req, res) => {
   return res.json({ message: "Streamyst is up and running..." });
 });
 
+import UserService from "@repo/services/user";
+const userService = new UserService();
+
 app.get("/health", (req, res) => {
   return res.json({ message: "Streamyst server is healthy", healthy: true });
+});
+
+app.get("/api/verify-email", async (req, res) => {
+  const { email, code } = req.query;
+
+  if (!email || !code) {
+    return res.status(400).send(`
+      <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <h1 style="color: #ef4444;">Verification Failed</h1>
+        <p>Missing email or verification code in link.</p>
+        <a href="http://localhost:3000/sign-up" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signup</a>
+      </div>
+    `);
+  }
+
+  try {
+    const { token } = await userService.verifyEmailCode({
+      email: String(email),
+      code: String(code),
+    });
+
+    // Set the authentication-cookie directly on express response
+    res.cookie("authentication-cookie", token, {
+      path: "/",
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+    });
+
+    // Redirect user directly to the makeshift dashboard page
+    return res.redirect("http://localhost:3000/dashboard");
+  } catch (error: any) {
+    return res.status(400).send(`
+      <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <h1 style="color: #ef4444;">Verification Failed</h1>
+        <p>${error.message || "Invalid or expired link."}</p>
+        <a href="http://localhost:3000/sign-up" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signup</a>
+      </div>
+    `);
+  }
 });
 
 logger.debug(`openapi.json: ${env.BASE_URL}/openapi.json`);
