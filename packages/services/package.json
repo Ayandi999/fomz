@@ -7,6 +7,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.15.3",
+    "@types/nodemailer": "^8.0.0",
     "dotenv-cli": "^11.0.0",
     "typescript": "^5.9.3"
   },
@@ -16,6 +17,7 @@
     "argon2": "^0.44.0",
     "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.8",
     "zod": "^4.3.5"
   }
 }
