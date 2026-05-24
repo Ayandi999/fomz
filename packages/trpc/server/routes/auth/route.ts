@@ -4,12 +4,16 @@ import {
   getUserInfoInputModel, 
   getUserInfoOutputModel, 
   siginInUserWithEmailAndPasswordInputModel, 
-  siginInUserWithEmailAndPasswordOutputModel
+  siginInUserWithEmailAndPasswordOutputModel,
+  getGoogleOAuthUrlOutputModel,
+  continueWithGoogleInputModel,
+  continueWithGoogleOutputModel
 } from "./model"
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { userService } from "../../services";
 import { getAuthenticationCookie, setAuthenticationCookie } from "../../utils/cookie";
+import { googleOAuth2Client } from "@repo/services/clients/google-oauth";
 
 const TAGS = ["Authentication"];
 const getPath = generatePath("/authentication");
@@ -52,6 +56,41 @@ export const authRouter = router({
     return{
       id
     }
+  }),
+
+  getGoogleOAuthUrl: publicProcedure
+  .meta({openapi:{
+    method:'GET',
+    path:'/getGoogleOAuthUrl',
+    tags:TAGS
+  }})
+  .input(getUserInfoInputModel)
+  .output(getGoogleOAuthUrlOutputModel)
+  .query(() => {
+    const url = googleOAuth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ],
+      prompt: 'consent'
+    });
+    return { url };
+  }),
+
+  continueWithGoogle: publicProcedure
+  .meta({openapi:{
+    method:'POST',
+    path:'/continueWithGoogle',
+    tags:TAGS
+  }})
+  .input(continueWithGoogleInputModel)
+  .output(continueWithGoogleOutputModel)
+  .mutation(async({input,ctx})=>{
+    const {code} = input;
+    const {id,token} = await userService.continueWithGoogle({code});
+    setAuthenticationCookie(ctx,token)
+    return {id}
   }),
 
   getUserInfoFromToken: autheticatedProcedure

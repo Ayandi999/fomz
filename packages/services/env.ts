@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  JWT_SECRET : z.string().describe("jwt secret key")
+  JWT_SECRET : z.string().describe("jwt secret key"),
+  GOOGLE_OAUTH_CLIENT_ID: z.string().describe("google oauth client id"),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().describe("google oauth client secret"),
+  GOOGLE_OAUTH_REDIRECT_URI: z.string().describe("google oauth redirect uri")
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSignup } from "~/hooks/api/auth/useSignup";
+import { trpc } from "~/trpc/client";
 
 function signuppage() {
     const [firstName, setFirstName] = useState("");
@@ -10,6 +11,7 @@ function signuppage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const { createUserWithEmailAndPasswordAsync } = useSignup();
+    const { data: googleOAuthUrl } = trpc.auth.getGoogleOAuthUrl.useQuery();
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -22,6 +24,12 @@ function signuppage() {
         })
         //redirect
         router.replace('/dashboard');
+    };
+
+    const handleGoogleSignIn = () => {
+        if (googleOAuthUrl?.url) {
+            window.location.href = googleOAuthUrl.url;
+        }
     };
 
     return (
@@ -81,9 +89,26 @@ function signuppage() {
                     </div>
                 </div>
 
-                <button type="submit" className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-neutral-900 text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 h-11 px-4 py-2 w-full transition-colors">
-                    Sign Up
-                </button>
+                <div className="flex flex-col gap-3">
+                    <button type="submit" className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-neutral-900 text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 h-11 px-4 py-2 w-full transition-colors cursor-pointer">
+                        Sign Up
+                    </button>
+
+                    <div className="flex items-center my-1">
+                        <div className="flex-grow border-t border-neutral-300 dark:border-neutral-700"></div>
+                        <span className="flex-shrink mx-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Or</span>
+                        <div className="flex-grow border-t border-neutral-300 dark:border-neutral-700"></div>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        onClick={handleGoogleSignIn}
+                        disabled={!googleOAuthUrl?.url}
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest border-2 border-neutral-900 dark:border-white bg-transparent text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 h-11 px-4 py-2 w-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        Continue with Google
+                    </button>
+                </div>
             </form>
         </div>
     )

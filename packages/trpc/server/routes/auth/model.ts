@@ -30,3 +30,16 @@ export const getUserInfoOutputModel = z.object({
     lastName:z.string().describe("User's last name"),
     profileImageUrl : z.string().describe("Users profile image").optional().nullable()
 })
+
+// Google Auth Models
+export const getGoogleOAuthUrlOutputModel = z.object({
+    url: z.string().describe("Google OAuth consent screen URL")
+});
+
+export const continueWithGoogleInputModel = z.object({
+    code: z.string().describe("Google authorization code")
+});
+
+export const continueWithGoogleOutputModel = z.object({
+    id: z.string().describe("Logged in user ID")
+});

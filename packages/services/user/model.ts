@@ -22,3 +22,10 @@ export const signInWithEmailAndPasswordModel = z.object({
 })
 
 export type SignInWithEmailAndPasswordType = z.infer<typeof signInWithEmailAndPasswordModel>
+
+export const continueWithGoogleInput = z.object({
+    code: z.string().describe("Google authorization code")
+});
+
+export type ContinueWithGoogleInput = z.infer<typeof continueWithGoogleInput>;
+
