@@ -13,12 +13,14 @@ import {
   forgotPasswordInputModel,
   forgotPasswordOutputModel,
   resetPasswordInputModel,
-  resetPasswordOutputModel
+  resetPasswordOutputModel,
+  signOutInputModel,
+  signOutOutputModel
 } from "./model"
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { userService } from "../../services";
-import { getAuthenticationCookie, setAuthenticationCookie } from "../../utils/cookie";
+import { getAuthenticationCookie, setAuthenticationCookie, clearAuthenticationCookie } from "../../utils/cookie";
 import { googleOAuth2Client } from "@repo/services/clients/google-oauth";
 
 const TAGS = ["Authentication"];
@@ -157,6 +159,21 @@ export const authRouter = router({
   .mutation(async({input})=>{
     const {email, code, newPassword} = input;
     await userService.resetPassword({ email, code, newPassword });
+    return { success: true };
+  }),
+
+  signOut: autheticatedProcedure
+  .meta({openapi:{
+    method:'POST',
+    path:'/signOut',
+    tags:TAGS
+  }})
+  .input(signOutInputModel)
+  .output(signOutOutputModel)
+  .mutation(async({ctx})=>{
+    const userId = ctx.user.id;
+    await userService.signOut(userId);
+    clearAuthenticationCookie(ctx);
     return { success: true };
   })
 });

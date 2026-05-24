@@ -72,4 +72,11 @@ export const resetPasswordInputModel = z.object({
 
 export const resetPasswordOutputModel = z.object({
     success: z.boolean().describe("Whether password reset was successful")
+});
+
+// Sign Out Models
+export const signOutInputModel = z.undefined();
+
+export const signOutOutputModel = z.object({
+    success: z.boolean().describe("Whether logout was successful")
 });

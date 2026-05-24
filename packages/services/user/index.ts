@@ -275,6 +275,16 @@ class userService{
             success: true
         };
     }
+
+    public async signOut(userId: string) {
+        // Clear refresh token in database
+        await db.update(usersTable)
+            .set({ refreshToken: null })
+            .where(eq(usersTable.id, userId));
+        return {
+            success: true
+        };
+    }
     
 }
 
