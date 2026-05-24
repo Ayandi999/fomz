@@ -43,3 +43,9 @@ export const resetPasswordInput = z.object({
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordInput>;
 
+export const refreshTokensInput = z.object({
+    refreshToken: z.string().describe("Refresh token value"),
+});
+
+export type RefreshTokensInput = z.infer<typeof refreshTokensInput>;
+

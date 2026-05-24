@@ -56,18 +56,27 @@ app.get("/api/verify-email", async (req, res) => {
   }
 
   try {
-    const { token } = await userService.verifyEmailCode({
+    const { accessToken, refreshToken } = await userService.verifyEmailCode({
       email: String(email),
       code: String(code),
     });
 
-    // Set the authentication-cookie directly on express response
-    res.cookie("authentication-cookie", token, {
+    // Set the access-cookie
+    res.cookie("access-cookie", accessToken, {
       path: "/",
       httpOnly: true,
       secure: true,
       sameSite: "strict",
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+      maxAge: 15 * 60 * 1000, // 15 mins
+    });
+
+    // Set the refresh-cookie
+    res.cookie("refresh-cookie", refreshToken, {
+      path: "/",
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
     // Redirect user directly to the makeshift dashboard page

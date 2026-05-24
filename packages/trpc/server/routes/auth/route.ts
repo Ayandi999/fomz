@@ -15,7 +15,9 @@ import {
   resetPasswordInputModel,
   resetPasswordOutputModel,
   signOutInputModel,
-  signOutOutputModel
+  signOutOutputModel,
+  refreshTokensInputModel,
+  refreshTokensOutputModel
 } from "./model"
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
@@ -58,8 +60,8 @@ export const authRouter = router({
   .output(siginInUserWithEmailAndPasswordOutputModel)
   .mutation(async({input,ctx})=>{
     const {email,password} = input;
-    const {id,token} = await userService.signInWithEmailAndPassword({email,password});
-    setAuthenticationCookie(ctx,token)
+    const {id, accessToken, refreshToken} = await userService.signInWithEmailAndPassword({email,password});
+    setAuthenticationCookie(ctx, accessToken, refreshToken)
     return{
       id
     }
@@ -95,8 +97,8 @@ export const authRouter = router({
   .output(continueWithGoogleOutputModel)
   .mutation(async({input,ctx})=>{
     const {code} = input;
-    const {id,token} = await userService.continueWithGoogle({code});
-    setAuthenticationCookie(ctx,token)
+    const {id, accessToken, refreshToken} = await userService.continueWithGoogle({code});
+    setAuthenticationCookie(ctx, accessToken, refreshToken)
     return {id}
   }),
 
@@ -110,8 +112,8 @@ export const authRouter = router({
   .output(verifyEmailCodeOutputModel)
   .query(async({input,ctx})=>{
     const {email,code} = input;
-    const {id,token} = await userService.verifyEmailCode({email,code});
-    setAuthenticationCookie(ctx,token)
+    const {id, accessToken, refreshToken} = await userService.verifyEmailCode({email,code});
+    setAuthenticationCookie(ctx, accessToken, refreshToken)
     return {id}
   }),
 
@@ -124,7 +126,7 @@ export const authRouter = router({
   .input(getUserInfoInputModel)
   .output(getUserInfoOutputModel)
   .query(async({ctx})=>{
-    const {id,email,profileImageUrl,firstName,lastName} = await userService.verifyUserToken(ctx.user.id);
+    const {id,email,profileImageUrl,firstName,lastName} = await userService.verifyUserToken(ctx.user.token);
     return{
       id,
       email,
@@ -171,9 +173,25 @@ export const authRouter = router({
   .input(signOutInputModel)
   .output(signOutOutputModel)
   .mutation(async({ctx})=>{
-    const userId = ctx.user.id;
-    await userService.signOut(userId);
+    const user = await userService.verifyUserToken(ctx.user.token);
+    await userService.signOut(user.id);
     clearAuthenticationCookie(ctx);
+    return { success: true };
+  }),
+
+  refreshTokens: publicProcedure
+  .meta({openapi:{
+    method:'POST',
+    path:'/refreshTokens',
+    tags:TAGS
+  }})
+  .input(refreshTokensInputModel)
+  .output(refreshTokensOutputModel)
+  .mutation(async({ctx})=>{
+    const refreshTokenVal = ctx.getCookie('refresh-cookie');
+    if (!refreshTokenVal) throw new Error("No refresh token cookie found");
+    const { accessToken, refreshToken } = await userService.refreshTokens({ refreshToken: refreshTokenVal });
+    setAuthenticationCookie(ctx, accessToken, refreshToken);
     return { success: true };
   })
 });

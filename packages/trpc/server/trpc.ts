@@ -18,8 +18,7 @@ export const autheticatedProcedure=tRPCContext.procedure.use(options=>{
   const {ctx} = options;
   const userToken = getAuthenticationCookie(ctx);
   if(!userToken) throw new Error('User is not logged in');
-  const {id,email,fullname,profileImageUrl} = userToken;
   return options.next({
-    ctx:{...ctx,user:{id}}
+    ctx:{...ctx,user:{token: userToken}}
   });
 })

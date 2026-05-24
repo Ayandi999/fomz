@@ -79,4 +79,11 @@ export const signOutInputModel = z.undefined();
 
 export const signOutOutputModel = z.object({
     success: z.boolean().describe("Whether logout was successful")
+});
+
+// Refresh Tokens Models
+export const refreshTokensInputModel = z.undefined();
+
+export const refreshTokensOutputModel = z.object({
+    success: z.boolean().describe("Whether tokens were refreshed successfully")
 });

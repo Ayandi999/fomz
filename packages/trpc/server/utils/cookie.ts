@@ -1,5 +1,6 @@
 import type { CookieOptions,Request,Response } from "express"
 import { TRPCContext } from "../context";
+import * as JWT from "jsonwebtoken";
 
 //These are just default options for cookie no stress
 const ONE_MINUTE = 60 * 1000;
@@ -37,16 +38,39 @@ export function cleareCookieFactory(res:Response){
           res.clearCookie(name)
      }
 }
-//-----------------Authentication cookie------------------
+//-----------------Authentication cookies------------------
 const AUTH_COOKIE_NAME = 'authentication-cookie';
-export function setAuthenticationCookie(ctx:TRPCContext,accessToken:string){
-     ctx.createCookie(AUTH_COOKIE_NAME,accessToken);
+const ACCESS_COOKIE_NAME = 'access-cookie';
+const REFRESH_COOKIE_NAME = 'refresh-cookie';
+
+export function setAuthenticationCookie(ctx:TRPCContext, accessToken:string, refreshToken?: string){
+     // 1. Set Access Token (expires in 15 mins)
+     ctx.createCookie(ACCESS_COOKIE_NAME, accessToken, {
+          path: '/',
+          httpOnly: true,
+          secure: true,
+          sameSite: "strict",
+          maxAge: 15 * 60 * 1000, // 15 minutes
+     });
+
+     if (refreshToken) {
+          // 2. Set Refresh Token (expires in 30 days)
+          ctx.createCookie(REFRESH_COOKIE_NAME, refreshToken, {
+               path: '/',
+               httpOnly: true,
+               secure: true,
+               sameSite: "strict",
+               maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          });
+     }
 }
 
 export function getAuthenticationCookie(ctx:TRPCContext){
-     return ctx.getCookie(AUTH_COOKIE_NAME)
+     return ctx.getCookie(ACCESS_COOKIE_NAME) || ctx.getCookie(AUTH_COOKIE_NAME);
 }
 
 export function clearAuthenticationCookie(ctx:TRPCContext){
-     ctx.cleareCookie(AUTH_COOKIE_NAME)
+     ctx.cleareCookie(ACCESS_COOKIE_NAME);
+     ctx.cleareCookie(REFRESH_COOKIE_NAME);
+     ctx.cleareCookie(AUTH_COOKIE_NAME);
 }

@@ -10,7 +10,9 @@ import {
     forgotPasswordInput,
     type ForgotPasswordInput,
     resetPasswordInput,
-    type ResetPasswordInput
+    type ResetPasswordInput,
+    refreshTokensInput,
+    type RefreshTokensInput
 } from './model'
 import * as argon2 from 'argon2'
 import {db,eq,and,lt} from '@repo/database';
@@ -32,10 +34,14 @@ class userService{
         if (!result || result.length === 0) return null;
         return result[0];
     }
-    private async generateToken(payload:GenerateUserTokenPayloadType){
-        const data = await generateuserTokenPayload.parseAsync(payload)
-        const token = JWT.sign({data},env.JWT_SECRET);
-        return {token}; //This is so that we can extend this object in the future
+    private async generateAccessToken(email: string) {
+        const data = { email };
+        return JWT.sign({ data }, env.JWT_SECRET, { expiresIn: '15m' });
+    }
+
+    private async generateRefreshToken(id: string) {
+        const data = { id };
+        return JWT.sign({ data }, env.JWT_SECRET, { expiresIn: '30d' });
     }
     private async getUsetInfoById(id:string){
         const user = await db.select({
@@ -57,10 +63,11 @@ class userService{
         profileImageUrl:string | null
     }>{
         try{
-            const decoded = JWT.verify(token,env.JWT_SECRET) as { data: GenerateUserTokenPayloadType };
-            const {id} = decoded.data
-            const userInfo = await this.getUsetInfoById(id);
-            return userInfo
+            const decoded = JWT.verify(token,env.JWT_SECRET) as { data: { email: string } };
+            const {email} = decoded.data;
+            const users = await this.getUserByEmail(email);
+            if (!users || users.length === 0 || !users[0]) throw new Error("User not found");
+            return users[0];
         }catch(error){
             //Why throw a different error? because i don't want anyone to know that i am using this library
             throw new Error("Invalid Token")
@@ -101,10 +108,18 @@ class userService{
         const isPasswordValid = await argon2.verify(user[0].password, password);
         if(!isPasswordValid) throw new Error("User email / password is wrong");
         //make tokens
-        const {token} = await this.generateToken({id:user[0].id});       
+        const accessToken = await this.generateAccessToken(email);       
+        const refreshToken = await this.generateRefreshToken(user[0].id);       
+
+        // Save refresh token in database
+        await db.update(usersTable)
+            .set({ refreshToken: refreshToken })
+            .where(eq(usersTable.id, user[0].id));
+
         return {
             id:user[0].id,
-            token
+            accessToken,
+            refreshToken
         }
     }
     public async continueWithGoogle(payload: ContinueWithGoogleInput) {
@@ -171,10 +186,21 @@ class userService{
         }
 
         if (!user || !user.id) throw new Error("User not found");
-        const { token } = await this.generateToken({ id: user.id });
+        
+        // Fetch user email
+        const fullUser = await this.getUsetInfoById(user.id);
+        const accessToken = await this.generateAccessToken(fullUser.email);
+        const refreshToken = await this.generateRefreshToken(user.id);
+
+        // Save refresh token in database
+        await db.update(usersTable)
+            .set({ refreshToken: refreshToken })
+            .where(eq(usersTable.id, user.id));
+
         return {
             id: user.id,
-            token
+            accessToken,
+            refreshToken
         };
     }
 
@@ -214,11 +240,18 @@ class userService{
 
         // 6. Generate and return token
         const userId = insertedUser[0].id;
-        const { token } = await this.generateToken({ id: userId });
+        const accessToken = await this.generateAccessToken(email);
+        const refreshToken = await this.generateRefreshToken(userId);
+
+        // 7. Save refresh token in database
+        await db.update(usersTable)
+            .set({ refreshToken: refreshToken })
+            .where(eq(usersTable.id, userId));
 
         return {
             id: userId,
-            token
+            accessToken,
+            refreshToken
         };
     }
 
@@ -284,6 +317,43 @@ class userService{
         return {
             success: true
         };
+    }
+
+    public async refreshTokens(payload: RefreshTokensInput) {
+        const { refreshToken } = await refreshTokensInput.parseAsync(payload);
+        try {
+            // 1. Verify and decode the refresh token (which stores user id)
+            const decoded = JWT.verify(refreshToken, env.JWT_SECRET) as { data: { id: string } };
+            const userId = decoded.data.id;
+
+            // 2. Fetch user from DB
+            const users = await db.selectDistinct().from(usersTable).where(eq(usersTable.id, userId));
+            if (!users || users.length === 0 || !users[0]) {
+                throw new Error("User not found");
+            }
+            const user = users[0];
+
+            // 3. Verify that stored refreshToken matches
+            if (user.refreshToken !== refreshToken) {
+                throw new Error("Invalid refresh token");
+            }
+
+            // 4. Generate new tokens (access has email, refresh has id)
+            const newAccessToken = await this.generateAccessToken(user.email);
+            const newRefreshToken = await this.generateRefreshToken(userId);
+
+            // 5. Update DB
+            await db.update(usersTable)
+                .set({ refreshToken: newRefreshToken })
+                .where(eq(usersTable.id, userId));
+
+            return {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken
+            };
+        } catch (error) {
+            throw new Error("Invalid or expired refresh token");
+        }
     }
     
 }
