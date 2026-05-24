@@ -26,6 +26,7 @@ export const getUserInfoInputModel = z.undefined();
 export const getUserInfoOutputModel = z.object({
     id:z.string().describe("User id"),
     email:z.string().email().describe("User's email"),
-    fullName:z.string().describe("Users full name"),
+    firstName:z.string().describe("User's first name"),
+    lastName:z.string().describe("User's last name"),
     profileImageUrl : z.string().describe("Users profile image").optional().nullable()
 })

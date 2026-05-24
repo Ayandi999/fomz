@@ -63,12 +63,13 @@ export const authRouter = router({
   .input(getUserInfoInputModel)
   .output(getUserInfoOutputModel)
   .query(async({ctx})=>{
-    const {id,email,profileImageUrl,fullName} = await userService.verifyUserToken(ctx.user.id);
+    const {id,email,profileImageUrl,firstName,lastName} = await userService.verifyUserToken(ctx.user.id);
     return{
       id,
       email,
       profileImageUrl,
-      fullName
+      firstName,
+      lastName
     }
   })
 });

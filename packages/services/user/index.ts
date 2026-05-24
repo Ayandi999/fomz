@@ -9,7 +9,6 @@ import {
 import * as argon2 from 'argon2'
 import {db,eq} from '@repo/database';
 import {usersTable} from '@repo/database/models/user'
-import {createHmac, randomBytes} from 'node:crypto'
 import * as JWT from 'jsonwebtoken';
 import { env } from '../env';
 
@@ -24,14 +23,12 @@ class userService{
         const token = JWT.sign({data},env.JWT_SECRET);
         return {token}; //This is so that we can extend this object in the future
     }
-    private async generateHash(salt:string,password:string){
-        return createHmac('sha256',salt).update(password).digest('hex')
-    }
     private async getUsetInfoById(id:string){
         const user = await db.select({
             id:usersTable.id,
             email:usersTable.email,
-            fullName:usersTable.fullName,
+            firstName:usersTable.firstName,
+            lastName:usersTable.lastName,
             profileImageUrl:usersTable.profileImageUrl
         }).from(usersTable).where(eq(usersTable.id,id))
         if(!user || user.length === 0 || !user[0]) throw new Error("User not found")
@@ -40,7 +37,8 @@ class userService{
     public async verifyUserToken(token:string):Promise<{
         id:string,
         email:string,
-        fullName:string,
+        firstName:string,
+        lastName:string,
         profileImageUrl:string | null
     }>{
         try{
@@ -85,10 +83,10 @@ class userService{
         const user = await this.getUserByEmail(email);
         if(!user || user.length===0 || !user[0]) throw new Error("account doesn't exist");
         //What if the user used google auth
-        if(!user[0].password || !user[0].salt) throw new Error("Invalid authentication method")
+        if(!user[0].password) throw new Error("Invalid authentication method")
         //check if password is correct
-        const hashedPasswordNew = await this.generateHash(user[0].salt,password);
-        if(hashedPasswordNew !== user[0].password) throw new Error("User email / password is wrong");
+        const isPasswordValid = await argon2.verify(user[0].password, password);
+        if(!isPasswordValid) throw new Error("User email / password is wrong");
         //make tokens
         const {token} = await this.generateToken({id:user[0].id});       
         return {
