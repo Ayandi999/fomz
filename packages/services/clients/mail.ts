@@ -1,12 +1,21 @@
 import nodemailer from "nodemailer";
+import { env } from "../env";
 
 let transporter: nodemailer.Transporter | null = null;
 
 export async function getMailTransporter() {
   if (transporter) return transporter;
 
-  // Create a test Ethereal account dynamically
-  const testAccount = await nodemailer.createTestAccount();
+  let smtpUser = env.SMTP_USER?.trim();
+  let smtpPass = env.SMTP_PASS?.trim();
+
+  // Fallback to test ethereal account if no credentials provided in env
+  if (!smtpUser || !smtpPass) {
+    console.log("No SMTP credentials provided in .env. Creating a test Ethereal account dynamically...");
+    const testAccount = await nodemailer.createTestAccount();
+    smtpUser = testAccount.user;
+    smtpPass = testAccount.pass;
+  }
 
   // Create the transporter using Ethereal's SMTP settings
   transporter = nodemailer.createTransport({
@@ -14,8 +23,8 @@ export async function getMailTransporter() {
     port: 587,
     secure: false, // true for 465, false for other ports
     auth: {
-      user: testAccount.user, // generated ethereal user
-      pass: testAccount.pass, // generated ethereal password
+      user: smtpUser,
+      pass: smtpPass,
     },
   });
 

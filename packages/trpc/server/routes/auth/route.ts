@@ -7,7 +7,9 @@ import {
   siginInUserWithEmailAndPasswordOutputModel,
   getGoogleOAuthUrlOutputModel,
   continueWithGoogleInputModel,
-  continueWithGoogleOutputModel
+  continueWithGoogleOutputModel,
+  verifyEmailCodeInputModel,
+  verifyEmailCodeOutputModel
 } from "./model"
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
@@ -27,15 +29,14 @@ export const authRouter = router({
   }})
   .input(createUserWithEmailAndPasswordInputModel)
   .output(createUserWithEmailAndPasswordOutputModel)
-  .mutation(async({input,ctx})=>{
+  .mutation(async({input})=>{
     const {email,firstName,lastName,password} = input;
-    const {id,token} = await userService.createUserWithEmailAndPassword({
+    const {id} = await userService.createUserWithEmailAndPassword({
       firstName,
       lastName,
       email,
       password
     });
-    setAuthenticationCookie(ctx,token)
     return {id}
   }),
 
@@ -89,6 +90,21 @@ export const authRouter = router({
   .mutation(async({input,ctx})=>{
     const {code} = input;
     const {id,token} = await userService.continueWithGoogle({code});
+    setAuthenticationCookie(ctx,token)
+    return {id}
+  }),
+
+  verifyEmailCode: publicProcedure
+  .meta({openapi:{
+    method:'GET',
+    path:'/verifyEmailCode',
+    tags:TAGS
+  }})
+  .input(verifyEmailCodeInputModel)
+  .output(verifyEmailCodeOutputModel)
+  .query(async({input,ctx})=>{
+    const {email,code} = input;
+    const {id,token} = await userService.verifyEmailCode({email,code});
     setAuthenticationCookie(ctx,token)
     return {id}
   }),

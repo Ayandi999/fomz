@@ -42,4 +42,14 @@ export const continueWithGoogleInputModel = z.object({
 
 export const continueWithGoogleOutputModel = z.object({
     id: z.string().describe("Logged in user ID")
+});
+
+// Verification Code Models
+export const verifyEmailCodeInputModel = z.object({
+    email: z.string().email().describe("User's email"),
+    code: z.string().length(6).describe("6-digit verification code")
+});
+
+export const verifyEmailCodeOutputModel = z.object({
+    id: z.string().describe("Verified user ID")
 });
