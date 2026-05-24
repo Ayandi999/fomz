@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { OpenApiMeta } from "trpc-to-openapi";
 
 import { createContext } from "./context";
+import { getAuthenticationCookie } from "./utils/cookie";
 
 export const tRPCContext = initTRPC
   .meta<OpenApiMeta>()
@@ -11,3 +12,14 @@ export const tRPCContext = initTRPC
 export const router = tRPCContext.router;
 
 export const publicProcedure = tRPCContext.procedure;
+
+//This is my authenticated route
+export const autheticatedProcedure=tRPCContext.procedure.use(options=>{
+  const {ctx} = options;
+  const userToken = getAuthenticationCookie(ctx);
+  if(!userToken) throw new Error('User is not logged in');
+  const {id,email,fullname,profileImageUrl} = userToken;
+  return options.next({
+    ctx:{...ctx,user:{id}}
+  });
+})

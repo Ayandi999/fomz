@@ -6,7 +6,7 @@ import {
   siginInUserWithEmailAndPasswordInputModel, 
   siginInUserWithEmailAndPasswordOutputModel
 } from "./model"
-import { publicProcedure, router } from "../../trpc";
+import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { userService } from "../../services";
 import { getAuthenticationCookie, setAuthenticationCookie } from "../../utils/cookie";
@@ -53,7 +53,7 @@ export const authRouter = router({
     }
   }),
 
-  getUserInfoFromToken: publicProcedure
+  getUserInfoFromToken: autheticatedProcedure
   .meta({openapi:{
     method:'GET',
     path:'/getUserInfo',
@@ -62,9 +62,7 @@ export const authRouter = router({
   .input(getUserInfoInputModel)
   .output(getUserInfoOutputModel)
   .query(async({ctx})=>{
-    const token = getAuthenticationCookie(ctx)
-    if(!token) throw new Error("User is not logged in");
-    const {id,email,profileImageUrl,fullName} = await userService.verifyUserToken(token);
+    const {id,email,profileImageUrl,fullName} = await userService.verifyUserToken(ctx.user.id);
     return{
       id,
       email,
