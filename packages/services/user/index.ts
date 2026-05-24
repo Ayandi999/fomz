@@ -6,7 +6,11 @@ import {
     SignInWithEmailAndPasswordType,
     signInWithEmailAndPasswordModel,
     type ContinueWithGoogleInput,
-    continueWithGoogleInput
+    continueWithGoogleInput,
+    forgotPasswordInput,
+    type ForgotPasswordInput,
+    resetPasswordInput,
+    type ResetPasswordInput
 } from './model'
 import * as argon2 from 'argon2'
 import {db,eq,and,lt} from '@repo/database';
@@ -15,7 +19,7 @@ import * as JWT from 'jsonwebtoken';
 import { env } from '../env';
 import { googleOAuth2Client } from '../clients/google-oauth';
 import redis from '../redis';
-import { sendVerificationCodeEmail } from '../mail';
+import { sendVerificationCodeEmail, sendForgotPasswordEmail } from '../mail';
 
 class userService{
     private async getUserByEmail(email:string){
@@ -215,6 +219,60 @@ class userService{
         return {
             id: userId,
             token
+        };
+    }
+
+    public async forgotPassword(payload: ForgotPasswordInput) {
+        const { email } = await forgotPasswordInput.parseAsync(payload);
+        
+        // Check if user exists
+        const user = await this.getUserByEmail(email);
+        if (!user || user.length === 0 || !user[0]) {
+            throw new Error("No account found with this email");
+        }
+
+        // Generate 6-digit verification code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Save code in Redis with 15-minute TTL
+        await redis.set(`reset-password:${email}`, code, "EX", 900);
+
+        // Send forgot password email
+        await sendForgotPasswordEmail(email, code);
+
+        return {
+            success: true
+        };
+    }
+
+    public async resetPassword(payload: ResetPasswordInput) {
+        const { email, code, newPassword } = await resetPasswordInput.parseAsync(payload);
+
+        // Match verification code from Redis
+        const storedCode = await redis.get(`reset-password:${email}`);
+        if (!storedCode) throw new Error("Reset code expired or not found");
+        if (storedCode !== code) throw new Error("Invalid reset code");
+
+        // Fetch user from DB
+        const users = await this.getUserByEmail(email);
+        if (!users || users.length === 0 || !users[0]) {
+            throw new Error("User not found");
+        }
+        const user = users[0];
+
+        // Hash new password
+        const hash = await argon2.hash(newPassword);
+
+        // Update password in DB
+        await db.update(usersTable)
+            .set({ password: hash })
+            .where(eq(usersTable.id, user.id));
+
+        // Clean up Redis entry
+        await redis.del(`reset-password:${email}`);
+
+        return {
+            success: true
         };
     }
     

@@ -52,4 +52,24 @@ export const verifyEmailCodeInputModel = z.object({
 
 export const verifyEmailCodeOutputModel = z.object({
     id: z.string().describe("Verified user ID")
+});
+
+// Forgot Password Models
+export const forgotPasswordInputModel = z.object({
+    email: z.string().email().describe("User's email")
+});
+
+export const forgotPasswordOutputModel = z.object({
+    success: z.boolean().describe("Whether reset email was sent successfully")
+});
+
+// Reset Password Models
+export const resetPasswordInputModel = z.object({
+    email: z.string().email().describe("User's email"),
+    code: z.string().length(6).describe("6-digit verification code"),
+    newPassword: z.string().min(8).describe("New password")
+});
+
+export const resetPasswordOutputModel = z.object({
+    success: z.boolean().describe("Whether password reset was successful")
 });

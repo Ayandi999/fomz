@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSignin } from "~/hooks/api/auth/useSignin";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 
 function signinpage() {
@@ -12,6 +12,8 @@ function signinpage() {
   const { siginInUserWithEmailAndPasswordAsync } = useSignin();
   const { data: googleOAuthUrl } = trpc.auth.getGoogleOAuthUrl.useQuery();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const success = searchParams.get("success");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +44,12 @@ function signinpage() {
           </p>
         </div>
 
+        {success === "reset" && (
+          <div className="bg-emerald-100 dark:bg-emerald-950/30 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-400 p-3 text-xs font-bold uppercase tracking-wider text-center font-extrabold">
+            Password reset successful! Please sign in.
+          </div>
+        )}
+
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -69,6 +77,15 @@ function signinpage() {
               placeholder="••••••••"
               required
             />
+          </div>
+
+          <div className="flex justify-end -mt-2">
+            <Link
+              href="/forgot-password"
+              className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white underline underline-offset-4 hover:text-muted-foreground transition-colors"
+            >
+              Forgot Password?
+            </Link>
           </div>
         </div>
 

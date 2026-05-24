@@ -8,6 +8,7 @@ import { generateOpenApiDocument, createOpenApiExpressMiddleware } from "trpc-to
 import { apiReference } from "@scalar/express-api-reference";
 
 import { serverRouter, createContext } from "@repo/trpc/server";
+import redis from "@repo/services/redis";
 
 import { env } from "./env";
 
@@ -77,6 +78,40 @@ app.get("/api/verify-email", async (req, res) => {
         <h1 style="color: #ef4444;">Verification Failed</h1>
         <p>${error.message || "Invalid or expired link."}</p>
         <a href="http://localhost:3000/sign-up" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signup</a>
+      </div>
+    `);
+  }
+});
+
+app.get("/api/reset-password-verify", async (req, res) => {
+  const { email, code } = req.query;
+
+  if (!email || !code) {
+    return res.status(400).send(`
+      <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <h1 style="color: #ef4444;">Verification Failed</h1>
+        <p>Missing email or verification code in link.</p>
+        <a href="http://localhost:3000/sign-in" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signin</a>
+      </div>
+    `);
+  }
+
+  try {
+    // 1. Fetch code from Redis
+    const storedCode = await redis.get(`reset-password:${email}`);
+    if (!storedCode) throw new Error("Reset link expired or not found");
+
+    // 2. Match verification code
+    if (storedCode !== code) throw new Error("Invalid verification code");
+
+    // 3. Redirect user directly to the reset password page on web
+    return res.redirect(`http://localhost:3000/reset-password?email=${encodeURIComponent(String(email))}&code=${String(code)}`);
+  } catch (error: any) {
+    return res.status(400).send(`
+      <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <h1 style="color: #ef4444;">Verification Failed</h1>
+        <p>${error.message || "Invalid or expired link."}</p>
+        <a href="http://localhost:3000/sign-in" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signin</a>
       </div>
     `);
   }

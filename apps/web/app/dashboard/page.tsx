@@ -110,7 +110,7 @@ export default function DashboardPage() {
                 Dashboard
               </h1>
               <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
-                Welcome back, {user.fullName ?? user.email}
+                Welcome back, {user.firstName ? `${user.firstName} ${user.lastName}` : user.email}
               </p>
             </div>
             <button

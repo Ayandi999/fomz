@@ -9,7 +9,11 @@ import {
   continueWithGoogleInputModel,
   continueWithGoogleOutputModel,
   verifyEmailCodeInputModel,
-  verifyEmailCodeOutputModel
+  verifyEmailCodeOutputModel,
+  forgotPasswordInputModel,
+  forgotPasswordOutputModel,
+  resetPasswordInputModel,
+  resetPasswordOutputModel
 } from "./model"
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
@@ -126,6 +130,34 @@ export const authRouter = router({
       firstName,
       lastName
     }
+  }),
+
+  forgotPassword: publicProcedure
+  .meta({openapi:{
+    method:'POST',
+    path:'/forgotPassword',
+    tags:TAGS
+  }})
+  .input(forgotPasswordInputModel)
+  .output(forgotPasswordOutputModel)
+  .mutation(async({input})=>{
+    const {email} = input;
+    await userService.forgotPassword({ email });
+    return { success: true };
+  }),
+
+  resetPassword: publicProcedure
+  .meta({openapi:{
+    method:'POST',
+    path:'/resetPassword',
+    tags:TAGS
+  }})
+  .input(resetPasswordInputModel)
+  .output(resetPasswordOutputModel)
+  .mutation(async({input})=>{
+    const {email, code, newPassword} = input;
+    await userService.resetPassword({ email, code, newPassword });
+    return { success: true };
   })
 });
 

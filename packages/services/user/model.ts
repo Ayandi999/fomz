@@ -29,3 +29,17 @@ export const continueWithGoogleInput = z.object({
 
 export type ContinueWithGoogleInput = z.infer<typeof continueWithGoogleInput>;
 
+export const forgotPasswordInput = z.object({
+    email: z.string().email().describe("Email of user"),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordInput>;
+
+export const resetPasswordInput = z.object({
+    email: z.string().email().describe("Email of user"),
+    code: z.string().length(6).describe("6-digit verification code"),
+    newPassword: z.string().min(8).describe("New password of user"),
+});
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordInput>;
+
