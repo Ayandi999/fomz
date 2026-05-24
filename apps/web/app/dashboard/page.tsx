@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "~/hooks/api/auth/useUser";
 import { useCreateForm } from "~/hooks/api/forms/useCreateForm";
+import { useDeleteForm } from "~/hooks/api/forms/useDeleteForm";
 
 type FormStatus = "draft" | "published";
 
@@ -44,9 +45,25 @@ function StatusBadge({ status }: { status: FormStatus }) {
 export default function DashboardPage() {
   const { user, isLoading, isFetched } = useUser();
   const { createFormAsync, isPending, isError, error } = useCreateForm();
+  const { deleteFormAsync } = useDeleteForm();
   const router = useRouter();
 
-  const [forms, setForms] = useState<FormItem[]>([]);
+  const [forms, setForms] = useState<FormItem[]>([
+    {
+      id: "dummy-1",
+      title: "Customer Feedback Form",
+      status: "published",
+      responses: 12,
+      updatedAt: "2 hours ago",
+    },
+    {
+      id: "dummy-2",
+      title: "Product Launch Survey",
+      status: "draft",
+      responses: 0,
+      updatedAt: "1 day ago",
+    }
+  ]);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -80,8 +97,15 @@ export default function DashboardPage() {
     setShowCreate(false);
   };
 
-  const handleDelete = (id: string) => {
-    setForms((prev) => prev.filter((f) => f.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      if (!id.startsWith("dummy-")) {
+        await deleteFormAsync({ formId: id });
+      }
+      setForms((prev) => prev.filter((f) => f.id !== id));
+    } catch (err) {
+      console.error("Failed to delete form:", err);
+    }
   };
 
   if (isLoading || !user?.id) {
@@ -102,6 +126,18 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen w-full flex flex-col items-center p-4 py-8">
       <div className="w-full max-w-4xl flex flex-col gap-6">
+        {/* Top Navbar */}
+        <nav className="w-full border-2 border-neutral-900 dark:border-neutral-100 bg-background px-6 py-4 flex items-center justify-between">
+          <span className="text-xl font-black tracking-tight uppercase bg-neutral-900 text-white dark:bg-white dark:text-black px-2 py-0.5">
+            Streamyst
+          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.email}
+            </span>
+          </div>
+        </nav>
+
         {/* Header */}
         <header className={cardClass}>
           <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4 sm:flex-row sm:items-end sm:justify-between">

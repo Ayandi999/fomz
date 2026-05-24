@@ -1,8 +1,10 @@
 import {
   type CreateFormInput,
   createFormInput,
+  type DeleteFormInput,
+  deleteFormInput,
 } from "./model";
-import { db } from "@repo/database";
+import { db, and, eq } from "@repo/database";
 import { formsTable } from "@repo/database/models/form";
 
 class formService {
@@ -10,14 +12,22 @@ class formService {
     const { title, description, createdBy } =
       await createFormInput.parseAsync(payload);
 
+    // Generate a clean, unique URL slug
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .concat("-", Math.random().toString(36).substring(2, 8));
+
     const insertedForm = await db
       .insert(formsTable)
       .values({
         title,
         description,
         createdBy,
+        slug,
       })
-      .returning({ id: formsTable.id });
+      .returning({ id: formsTable.formId });
 
     if (!insertedForm || insertedForm.length === 0 || !insertedForm[0]?.id) {
       throw new Error("Something went wrong while creating form");
@@ -27,6 +37,30 @@ class formService {
       id: insertedForm[0].id,
     };
   }
+
+  public async deleteForm(payload: DeleteFormInput) {
+    const { formId, createdBy } = await deleteFormInput.parseAsync(payload);
+
+    const deleted = await db
+      .delete(formsTable)
+      .where(
+        and(
+          eq(formsTable.formId, formId),
+          eq(formsTable.createdBy, createdBy)
+        )
+      )
+      .returning({ id: formsTable.formId });
+
+    if (!deleted || deleted.length === 0) {
+      throw new Error("Form not found or you do not have permission to delete it");
+    }
+
+    return {
+      success: true,
+    };
+  }
 }
 
 export default formService;
+
+

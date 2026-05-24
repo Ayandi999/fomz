@@ -296,9 +296,9 @@ class userService{
         // Hash new password
         const hash = await argon2.hash(newPassword);
 
-        // Update password in DB
+        // Update password and clear refresh token in DB to revoke sessions
         await db.update(usersTable)
-            .set({ password: hash })
+            .set({ password: hash, refreshToken: null })
             .where(eq(usersTable.id, user.id));
 
         // Clean up Redis entry

@@ -12,7 +12,7 @@ const ONE_YEAR = ONE_MONTH * 12;
 const defaultCookieOption: CookieOptions = {
      path:'/',
      httpOnly:true,
-     secure:true,
+     secure: process.env.NODE_ENV === "production",
      sameSite:"strict",
      maxAge: ONE_YEAR,
 }
@@ -44,11 +44,13 @@ const ACCESS_COOKIE_NAME = 'access-cookie';
 const REFRESH_COOKIE_NAME = 'refresh-cookie';
 
 export function setAuthenticationCookie(ctx:TRPCContext, accessToken:string, refreshToken?: string){
+     const isProd = process.env.NODE_ENV === "production";
+
      // 1. Set Access Token (expires in 15 mins)
      ctx.createCookie(ACCESS_COOKIE_NAME, accessToken, {
           path: '/',
           httpOnly: true,
-          secure: true,
+          secure: isProd,
           sameSite: "strict",
           maxAge: 15 * 60 * 1000, // 15 minutes
      });
@@ -58,7 +60,7 @@ export function setAuthenticationCookie(ctx:TRPCContext, accessToken:string, ref
           ctx.createCookie(REFRESH_COOKIE_NAME, refreshToken, {
                path: '/',
                httpOnly: true,
-               secure: true,
+               secure: isProd,
                sameSite: "strict",
                maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
           });

@@ -61,11 +61,13 @@ app.get("/api/verify-email", async (req, res) => {
       code: String(code),
     });
 
+    const isProd = process.env.NODE_ENV === "production";
+
     // Set the access-cookie
     res.cookie("access-cookie", accessToken, {
       path: "/",
       httpOnly: true,
-      secure: true,
+      secure: isProd,
       sameSite: "strict",
       maxAge: 15 * 60 * 1000, // 15 mins
     });
@@ -74,7 +76,7 @@ app.get("/api/verify-email", async (req, res) => {
     res.cookie("refresh-cookie", refreshToken, {
       path: "/",
       httpOnly: true,
-      secure: true,
+      secure: isProd,
       sameSite: "strict",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });

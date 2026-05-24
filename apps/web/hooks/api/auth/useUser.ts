@@ -7,7 +7,9 @@ export const useUser = () => {
         status,
         error,
         isLoading
-    } = trpc.auth.getUserInfoFromToken.useQuery()
+    } = trpc.auth.getUserInfoFromToken.useQuery(undefined, {
+        retry: false
+    })
     return {
         user,
         error,

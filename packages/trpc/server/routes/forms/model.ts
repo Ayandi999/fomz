@@ -8,3 +8,12 @@ export const createFormInputModel = z.object({
 export const createFormOutputModel = z.object({
   id: z.string().describe("Id of the created form"),
 });
+
+export const deleteFormInputModel = z.object({
+  formId: z.string().uuid().describe("Id of the form to delete"),
+});
+
+export const deleteFormOutputModel = z.object({
+  success: z.boolean().describe("Whether form was deleted successfully"),
+});
+
