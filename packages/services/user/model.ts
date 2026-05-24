@@ -1,9 +1,10 @@
 import {z} from 'zod'
 
 export const createUserWithEmailAndPasswordInput = z.object({
-    fullName : z.string().describe('full name of user'),
+    firstName : z.string().min(2).describe('first name of user'),
+    lastName : z.string().min(2).describe('last name of user'),
     email : z.string().email().describe("Email of user"),
-    password : z.string()
+    password : z.string().min(8).describe('password of user')
 });
 
 

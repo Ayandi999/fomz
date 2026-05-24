@@ -6,6 +6,7 @@ import {
     SignInWithEmailAndPasswordType,
     signInWithEmailAndPasswordModel
 } from './model'
+import * as argon2 from 'argon2'
 import {db,eq} from '@repo/database';
 import {usersTable} from '@repo/database/models/user'
 import {createHmac, randomBytes} from 'node:crypto'
@@ -53,19 +54,19 @@ class userService{
         }
     }
     public async createUserWithEmailAndPassword(payload : CreateUserWithEmailAndPasswordInput){
-        const {email,password,fullName} = await createUserWithEmailAndPasswordInput.parseAsync(payload)
+        const {email,password,firstName,lastName} = await createUserWithEmailAndPasswordInput.parseAsync(payload)
         //does email alredy exist?
         const existinUserWithEmail = await this.getUserByEmail(email);
         if(existinUserWithEmail) throw new Error('User with email alredy exists')
         //Calculate hash and salt
-        const salt = randomBytes(16).toString('hex');
-        const hash = await this.generateHash(salt,password);
+        const hash = await argon2.hash(password);
 
         const insertedUser = await db.insert(usersTable).values({
             email,
-            fullName,
+            firstName,
+            lastName,
             password:hash,
-            salt
+            profileImageUrl:null
         }).returning({id:usersTable.id})
 
         if(!insertedUser || insertedUser.length === 0 || !insertedUser[0]?.id) throw new Error("Somentinh went wrong while making user");

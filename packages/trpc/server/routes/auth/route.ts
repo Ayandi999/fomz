@@ -24,9 +24,10 @@ export const authRouter = router({
   .input(createUserWithEmailAndPasswordInputModel)
   .output(createUserWithEmailAndPasswordOutputModel)
   .mutation(async({input,ctx})=>{
-    const {email,fullName,password} = input;
+    const {email,firstName,lastName,password} = input;
     const {id,token} = await userService.createUserWithEmailAndPassword({
-      fullName,
+      firstName,
+      lastName,
       email,
       password
     });

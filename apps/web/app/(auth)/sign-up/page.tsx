@@ -3,18 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSignup } from "~/hooks/api/auth/useSignup";
+
 function signuppage() {
-    const [fullName, setFullName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const { createUserWithEmailAndPasswordAsync } = useSignup();
     const router = useRouter();
-    //Me bringing the backend funcitno to frontend
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const {id} = await createUserWithEmailAndPasswordAsync({
-            fullName,
+            firstName,
+            lastName,
             email,
             password
         })
@@ -31,15 +33,27 @@ function signuppage() {
                 </div>
                 
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</label>
-                        <input 
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="flex h-10 w-full rounded-none border-2 border-neutral-300 dark:border-neutral-700 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-neutral-900 dark:focus-visible:border-neutral-100 disabled:cursor-not-allowed disabled:opacity-50" 
-                            placeholder="John Doe" 
-                            required
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">First Name</label>
+                            <input 
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                className="flex h-10 w-full rounded-none border-2 border-neutral-300 dark:border-neutral-700 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-neutral-900 dark:focus-visible:border-neutral-100 disabled:cursor-not-allowed disabled:opacity-50" 
+                                placeholder="John" 
+                                required
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Last Name</label>
+                            <input 
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="flex h-10 w-full rounded-none border-2 border-neutral-300 dark:border-neutral-700 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-neutral-900 dark:focus-visible:border-neutral-100 disabled:cursor-not-allowed disabled:opacity-50" 
+                                placeholder="Doe" 
+                                required
+                            />
+                        </div>
                     </div>
                     
                     <div className="flex flex-col gap-1.5">
@@ -75,4 +89,4 @@ function signuppage() {
     )
 }
 
-export default signuppage;
+export default signuppage;
