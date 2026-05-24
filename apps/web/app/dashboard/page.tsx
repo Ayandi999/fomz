@@ -199,7 +199,11 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 shrink-0">
-                    <button type="button" className={`${buttonSecondaryClass} h-9 px-3 text-xs`}>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/dashboard/edit/${form.id}`)}
+                      className={`${buttonSecondaryClass} h-9 px-3 text-xs`}
+                    >
                       Edit
                     </button>
                     <button type="button" className={`${buttonSecondaryClass} h-9 px-3 text-xs`}>
