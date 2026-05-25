@@ -57,6 +57,7 @@ export default function DashboardPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
 
   // Publish & Share Modal States
   const [selectedFormForModal, setSelectedFormForModal] = useState<any | null>(null);
@@ -108,13 +109,15 @@ export default function DashboardPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const deleteToastId = toast.loading("Permanently deleting form and purging files...");
     try {
       await deleteFormAsync({ formId: id });
       await refetchForms();
-      toast.success("Form deleted successfully!");
+      setDeleteConfirmationId(null);
+      toast.success("Form and all associated media deleted successfully!", { id: deleteToastId });
     } catch (err) {
       console.error("Failed to delete form:", err);
-      toast.error("Failed to delete form.");
+      toast.error("Failed to delete form.", { id: deleteToastId });
     }
   };
 
@@ -326,7 +329,7 @@ export default function DashboardPage() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(form.id);
+                        setDeleteConfirmationId(form.id);
                       }}
                       className={`${buttonSecondaryClass} h-9 px-3 text-xs border-red-600 dark:border-red-600 text-red-600 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white`}
                     >
@@ -606,6 +609,53 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal Popup */}
+      {deleteConfirmationId && (() => {
+        const formToDelete = displayForms.find(f => f.id === deleteConfirmationId);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs"
+            onClick={() => setDeleteConfirmationId(null)}
+          >
+            <div
+              className={`${cardClass} w-full max-w-md gap-6 shadow-2xl animate-fade-in text-neutral-900 dark:text-neutral-100`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4">
+                <h2 className="text-2xl font-extrabold tracking-tight uppercase text-red-500">
+                  Delete Form?
+                </h2>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  This action is permanent and cannot be undone
+                </p>
+              </div>
+
+              <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+                Are you sure you want to permanently delete "{formToDelete?.title || "this form"}"? 
+                This will purge all its associated answers, files, recordings, and media resources from the storage.
+              </p>
+
+              <div className="flex flex-col gap-2 sm:flex-row mt-2">
+                <button
+                  type="button"
+                  onClick={() => handleDelete(deleteConfirmationId)}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-red-600 text-white hover:bg-red-500 h-11 px-4 py-2 transition-colors cursor-pointer flex-1"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmationId(null)}
+                  className={`${buttonSecondaryClass} flex-1`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

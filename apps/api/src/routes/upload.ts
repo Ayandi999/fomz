@@ -1,10 +1,15 @@
 import express from "express";
 import multer from "multer";
-import { cloudinary } from "@repo/services/clients/cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 
 const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// Configure Cloudinary locally in the router with connection URL
+cloudinary.config({
+  cloudinary_url: process.env.CLOUDINARY_URL,
+});
 
 // Target Home Folders on Cloudinary as per approved spec
 const FOLDERS = {

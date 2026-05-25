@@ -1143,7 +1143,14 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   <input
                     type="datetime-local"
                     value={publishValidTill}
-                    onChange={e => setPublishValidTill(e.target.value)}
+                    onChange={e => {
+                      const selectedDate = e.target.value;
+                      if (selectedDate && new Date(selectedDate) < new Date()) {
+                        toast.error("You cannot choose an expiration date/time in the past.");
+                        return;
+                      }
+                      setPublishValidTill(selectedDate);
+                    }}
                     className={`${inputClass} text-xs`}
                   />
                   {publishValidTill && (
