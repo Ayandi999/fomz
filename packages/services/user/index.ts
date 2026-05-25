@@ -36,7 +36,7 @@ class userService{
     }
     private async generateAccessToken(email: string) {
         const data = { email };
-        return JWT.sign({ data }, env.JWT_SECRET, { expiresIn: '15m' });
+        return JWT.sign({ data }, env.JWT_SECRET, { expiresIn: '30d' });
     }
 
     private async generateRefreshToken(id: string) {

@@ -27,9 +27,9 @@ export const getUserFormsOutputModel = z.array(
     slug: z.string().describe("Unique slug of the form"),
     isPublished: z.boolean().describe("Whether the form is published"),
     visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).nullable().describe("Visibility level"),
-    validTill: z.date().nullable().optional().describe("Expiration date"),
-    createdAt: z.date().nullable().optional().describe("Form creation date"),
-    updatedAt: z.date().nullable().optional().describe("Form update date"),
+    validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
+    createdAt: z.coerce.date().nullable().optional().describe("Form creation date"),
+    updatedAt: z.coerce.date().nullable().optional().describe("Form update date"),
   })
 );
 
@@ -122,14 +122,53 @@ export const deleteFormFieldOutputModel = z.object({
   success: z.boolean().describe("Whether the field was deleted successfully"),
 });
 
-
 export const publishFormInputModel = z.object({
   formId: z.string().uuid().describe("Id of the form"),
   isPublished: z.boolean().describe("Publish state"),
+  visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).optional().describe("Visibility level"),
+  validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
 });
 
 export const publishFormOutputModel = z.object({
   success: z.boolean().describe("Whether form publish state was updated successfully"),
 });
 
+// Public endpoint schemas — only what is needed to render UI and store a response
+const publicFieldModel = z.object({
+  id: z.string().uuid().describe("Id of the field (needed to save answer)"),
+  formId: z.string().uuid().nullable().describe("Id of the form (needed to save answer)"),
+  label: z.string().nullable().describe("Question label"),
+  placeholder: z.string().nullable().describe("Input placeholder or options payload"),
+  fieldType: z.enum([
+    'LONG_TEXT','SHORT_TEXT','IMAGE','VIDEO','AUDIO','FILE',
+    'MULTIPLE_CHOICE','YES_NO','CHECKBOX','DROPDOWN','SLIDER',
+    'NUMBER','EMAIL','CONTACT_INFO','ADDRESS','PHONE','WEBSITE',
+    'RATING','DATE','WELCOME','THANK_YOU','INFO'
+  ]).describe("Field type — used to render the correct input component"),
+  isRequired: z.boolean().describe("Whether the field is required"),
+  parentId: z.string().uuid().nullable().optional().describe("Id of parent field — used to group children"),
+  index: z.number().describe("Ordering index"),
+});
 
+export const getPublicFormBySlugInputModel = z.object({
+  slug: z.string().describe("Unique form URL slug"),
+});
+
+export const getPublicFormBySlugOutputModel = z.object({
+  formId: z.string().uuid().describe("Id of the form"),
+  fields: z.array(publicFieldModel),
+});
+
+export const submitFormResponseInputModel = z.object({
+  formId: z.string().uuid().describe("Id of the form being answered"),
+  answers: z.array(
+    z.object({
+      fieldId: z.string().uuid().describe("Id of the field being answered"),
+      value: z.string().nullable().optional().describe("Response value"),
+    })
+  ),
+});
+
+export const submitFormResponseOutputModel = z.object({
+  success: z.boolean().describe("Whether the response was submitted successfully"),
+});

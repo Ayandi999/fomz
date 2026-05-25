@@ -15,6 +15,10 @@ import {
   deleteFormFieldOutputModel,
   publishFormInputModel,
   publishFormOutputModel,
+  getPublicFormBySlugInputModel,
+  getPublicFormBySlugOutputModel,
+  submitFormResponseInputModel,
+  submitFormResponseOutputModel,
 } from "./model";
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { formService, userService } from "../../services";
@@ -191,15 +195,47 @@ export const formsRouter = router({
     .output(publishFormOutputModel)
     .mutation(async ({ input, ctx }) => {
       const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
-      const { formId, isPublished } = input;
+      const { formId, isPublished, visibility, validTill } = input;
 
       const { success } = await formService.publishForm({
         formId,
         createdBy,
         isPublished,
+        visibility,
+        validTill,
       });
 
       return { success };
     }),
-});
 
+  getPublicFormBySlug: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/getPublicFormBySlug",
+        tags: TAGS,
+      },
+    })
+    .input(getPublicFormBySlugInputModel)
+    .output(getPublicFormBySlugOutputModel)
+    .query(async ({ input }) => {
+      const { slug } = input;
+      return await formService.getPublicFormBySlug({ slug });
+    }),
+
+  submitFormResponse: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/submitFormResponse",
+        tags: TAGS,
+      },
+    })
+    .input(submitFormResponseInputModel)
+    .output(submitFormResponseOutputModel)
+    .mutation(async ({ input }) => {
+      const { formId, answers } = input;
+      const { success } = await formService.submitFormResponse({ formId, answers });
+      return { success };
+    }),
+});

@@ -8,7 +8,7 @@ import {
   Sparkles, Type, AlignLeft, Hash, Mail, Calendar, ToggleLeft, Star,
   Image as ImageIcon, Video as VideoIcon, Mic as AudioIcon, FileText as FileIcon,
   List as ListIcon, ChevronDown, Sliders, User as UserIcon, MapPin as MapPinIcon,
-  Phone as PhoneIcon, Globe as GlobeIcon, Link as LinkIcon
+  Phone as PhoneIcon, Globe as GlobeIcon, Link as LinkIcon, Copy, ExternalLink, QrCode, ArrowRight, Check
 } from "lucide-react";
 import { useUser } from "~/hooks/api/auth/useUser";
 import { useGetFormFields } from "~/hooks/api/forms/useGetFormFields";
@@ -89,6 +89,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const [saveErrorMessage, setSaveErrorMessage] = useState<string>("");
   const [publishStatus, setPublishStatus] = useState<boolean>(false);
   const [showAddContent, setShowAddContent] = useState<boolean>(false);
+
+  // Publish/Share panel states
+  const [showPublishPanel, setShowPublishPanel] = useState<boolean>(false);
+  const [publishVisibility, setPublishVisibility] = useState<"PUBLIC" | "PRIVATE" | "UNLISTED">("UNLISTED");
+  const [publishValidTill, setPublishValidTill] = useState<string>("");
+  const [shareTab, setShareTab] = useState<"link" | "qr">("link");
+  const [linkCopied, setLinkCopied] = useState<boolean>(false);
 
   const topLevelQuestions = questions.filter(q => !q.parentId);
   const activeQuestion = topLevelQuestions[activeIdx] || topLevelQuestions[0];
@@ -842,11 +849,31 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
       await publishFormAsync({
         formId,
         isPublished: nextPublishState,
+        visibility: publishVisibility,
+        validTill: publishValidTill ? new Date(publishValidTill) : null,
       });
       setPublishStatus(nextPublishState);
+      if (nextPublishState) {
+        toast.success("Form published!");
+      } else {
+        toast.success("Form unpublished.");
+      }
     } catch (err) {
       console.error("Failed to toggle publish status", err);
+      toast.error("Failed to update publish state.");
     }
+  };
+
+  const shareUrl = currentForm?.slug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/share/${currentForm.slug}`
+    : "";
+
+  const handleCopyLink = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
   };
 
   return (
@@ -889,8 +916,160 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
               <Save className="w-3.5 h-3.5" />
               {isSaving ? "Saving…" : "Save Changes"}
             </button>
+            <button
+              type="button"
+              onClick={() => setShowPublishPanel(true)}
+              className={`${publishStatus ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              {publishStatus ? "Published" : "Publish"}
+            </button>
           </div>
         </nav>
+
+        {/* Publish / Share Panel Modal */}
+        {showPublishPanel && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+            onClick={() => setShowPublishPanel(false)}
+          >
+            <div
+              className="bg-background border-2 border-neutral-900 dark:border-neutral-100 w-full max-w-md flex flex-col gap-0 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="border-b-2 border-neutral-900 dark:border-neutral-100 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4 text-amber-500" /> Publish & Share
+                </h2>
+                <button onClick={() => setShowPublishPanel(false)} className="text-muted-foreground hover:text-foreground text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none">✕</button>
+              </div>
+
+              <div className="flex flex-col gap-6 px-6 py-6">
+                {/* Publish toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-black uppercase tracking-widest">{publishStatus ? "Published" : "Unpublished"}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                      {publishStatus ? "Your form is live and accepting responses." : "Your form is a draft — not visible to the public."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTogglePublish}
+                    disabled={isPublishing}
+                    className={`${publishStatus ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                  >
+                    {isPublishing ? "Updating…" : publishStatus ? "Unpublish" : "Publish Now"}
+                  </button>
+                </div>
+
+                {/* Visibility */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Visibility</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["PUBLIC", "UNLISTED", "PRIVATE"] as const).map(v => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setPublishVisibility(v)}
+                        className={`border-2 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${publishVisibility === v ? "border-neutral-900 dark:border-neutral-100 bg-neutral-900 text-white dark:bg-white dark:text-black" : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-600"}`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                    {publishVisibility === "PUBLIC" && "Anyone can find and fill this form."}
+                    {publishVisibility === "UNLISTED" && "Only people with the link can access."}
+                    {publishVisibility === "PRIVATE" && "Form is hidden from all respondents."}
+                  </p>
+                </div>
+
+                {/* Expiration */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Expiration Date (optional)</label>
+                  <input
+                    type="datetime-local"
+                    value={publishValidTill}
+                    onChange={e => setPublishValidTill(e.target.value)}
+                    className={`${inputClass} text-xs`}
+                  />
+                  {publishValidTill && (
+                    <button type="button" onClick={() => setPublishValidTill("")} className="text-[9px] text-red-500 hover:text-red-700 font-bold uppercase tracking-wider text-left cursor-pointer bg-transparent border-none">
+                      ✕ Clear expiration
+                    </button>
+                  )}
+                </div>
+
+                {/* Share link (only if published) */}
+                {publishStatus && shareUrl && (
+                  <div className="border-t-2 border-neutral-200 dark:border-neutral-800 pt-4 flex flex-col gap-3">
+                    {/* Tab switcher */}
+                    <div className="flex border-2 border-neutral-200 dark:border-neutral-800">
+                      <button
+                        type="button"
+                        onClick={() => setShareTab("link")}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "link" ? "bg-neutral-900 text-white dark:bg-white dark:text-black" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
+                      >
+                        <LinkIcon className="w-3 h-3" /> Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShareTab("qr")}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "qr" ? "bg-neutral-900 text-white dark:bg-white dark:text-black" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
+                      >
+                        <QrCode className="w-3 h-3" /> QR Code
+                      </button>
+                    </div>
+
+                    {shareTab === "link" && (
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={shareUrl}
+                          className={`${inputClass} text-xs flex-1 select-all`}
+                          onFocus={e => e.target.select()}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCopyLink}
+                          className={`${buttonPrimaryClass} h-10 px-3 text-xs flex items-center gap-1.5 shrink-0`}
+                        >
+                          {linkCopied ? "Copied!" : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+                        </button>
+                        <a
+                          href={`/share/${currentForm?.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${buttonSecondaryClass} h-10 px-3 text-xs flex items-center gap-1.5 shrink-0`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> Open
+                        </a>
+                      </div>
+                    )}
+
+                    {shareTab === "qr" && (
+                      <div className="flex flex-col items-center gap-3 py-2">
+                        <div className="border-2 border-neutral-200 dark:border-neutral-800 p-4 bg-white">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`}
+                            alt="QR Code"
+                            width={160}
+                            height={160}
+                            className="block"
+                          />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground uppercase tracking-widest text-center">Scan to open the form</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Builder Interface */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -2003,21 +2182,36 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
         {/* Fullscreen Form Preview Modal */}
         {isPreviewOpen && (
-          <div className="fixed inset-0 z-50 bg-background text-neutral-900 dark:text-neutral-100 flex flex-col justify-between p-6 md:p-12 animate-fade-in overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-neutral-950 text-white flex flex-col justify-between p-6 md:p-12 animate-fade-in overflow-y-auto">
+            {/* Progress bar */}
+            <div className="fixed top-0 left-0 right-0 h-0.5 bg-neutral-800 z-50">
+              <div
+                className="h-full bg-amber-400 transition-all duration-500 ease-out"
+                style={{ width: `${((previewStepIndex + 1) / topLevelQuestions.length) * 100}%` }}
+              />
+            </div>
+
+            {/* Step counter */}
+            <div className="fixed top-4 right-6 z-50">
+              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                {previewStepIndex + 1} / {topLevelQuestions.length}
+              </span>
+            </div>
+
             {/* Header */}
-            <div className="flex items-center justify-between border-b-2 border-neutral-900 dark:border-neutral-100 pb-4 mb-8">
+            <div className="flex items-center justify-between border-b-2 border-neutral-800 pb-4 mb-8">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-neutral-900 text-white dark:bg-white dark:text-black">
+                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-amber-400 text-black">
                   Preview Mode
                 </span>
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 ml-3">
                   {currentForm?.title || "Conversational Form"}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsPreviewOpen(false)}
-                className="flex items-center gap-1 text-xs font-black uppercase tracking-widest hover:text-muted-foreground cursor-pointer bg-transparent border-none text-neutral-900 dark:text-neutral-100"
+                className="flex items-center gap-1 text-xs font-black uppercase tracking-widest hover:text-white transition-colors cursor-pointer bg-transparent border-none text-neutral-400"
               >
                 Exit Preview <Plus className="w-4 h-4 rotate-45 shrink-0" />
               </button>
@@ -2031,10 +2225,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                 const isThankYou = q.fieldType === "THANK_YOU";
 
                 return (
-                  <div className="w-full max-w-4xl flex flex-col gap-10 animate-fade-in px-4 md:px-8">
+                  <div className="w-full max-w-2xl flex flex-col gap-8 animate-fade-in px-4 md:px-8">
                     {/* Header Step Progress (unless it's THANK_YOU) */}
                     {!isThankYou && (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
                         Step {previewStepIndex + 1} of {topLevelQuestions.length}
                       </span>
                     )}
@@ -2042,38 +2236,39 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     {/* Question Header */}
                     {isThankYou ? (
                       <div className="flex flex-col items-center justify-center text-center py-8 w-full animate-fade-in">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-widest text-white">
                           Thank You!
                         </h1>
                         {q.description && (
-                          <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed whitespace-pre-wrap mt-4 max-w-lg">
+                          <p className="text-neutral-450 text-base leading-relaxed mt-4 max-w-lg">
                             {q.description}
                           </p>
                         )}
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-3">
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight leading-tight text-neutral-900 dark:text-neutral-100 relative">
+                      <div className="flex flex-col gap-2">
+                        <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white leading-tight relative">
                           {q.label}
                           {q.isRequired && (
-                            <span className="absolute -top-1 -right-3 text-red-500 font-extrabold text-2xl select-none">*</span>
+                            <span className="absolute -top-1 -right-3 text-red-400 font-extrabold text-2xl select-none">*</span>
                           )}
                         </h2>
                         {q.description && (
-                          <p className="text-sm md:text-base text-neutral-500 dark:text-neutral-400 font-black border-l-4 border-amber-500 pl-4 leading-relaxed whitespace-pre-wrap mt-2">
+                          <p className="text-neutral-500 text-sm leading-relaxed max-w-xl">
                             {q.description}
                           </p>
                         )}
                       </div>
                     )}
-                                          {/* 1. SHORT_TEXT */}
+
+                        {/* 1. SHORT_TEXT */}
                         {q.fieldType === "SHORT_TEXT" && (
                           <input
                             type="text"
                             placeholder={q.placeholder || "Type your answer..."}
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                            className="text-3xl md:text-4xl font-black bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 focus:border-neutral-900 dark:focus:border-neutral-100 py-4 w-full focus-visible:outline-none transition-colors"
+                            className="bg-transparent border-b-2 border-neutral-700 focus:border-amber-400 text-white text-xl py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600"
                           />
                         )}
 
@@ -2083,7 +2278,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             placeholder={q.placeholder || "Type your response..."}
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                            className="text-2xl md:text-3xl font-black bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 focus:border-neutral-900 dark:focus:border-neutral-100 py-4 w-full focus-visible:outline-none transition-colors min-h-48 resize-none"
+                            rows={4}
+                            className="bg-transparent border-b-2 border-neutral-700 focus:border-amber-400 text-white text-lg py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600 resize-none"
                           />
                         )}
 
@@ -2094,34 +2290,35 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             placeholder={q.placeholder || "Type a number..."}
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                            className="text-3xl md:text-4xl font-black bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 focus:border-neutral-900 dark:focus:border-neutral-100 py-4 w-full focus-visible:outline-none transition-colors"
+                            className="bg-transparent border-b-2 border-neutral-700 focus:border-amber-400 text-white text-xl py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600"
                           />
                         )}
 
                         {/* 4. EMAIL */}
                         {q.fieldType === "EMAIL" && (
-                          <div className="flex items-center gap-4 border-b-2 border-neutral-300 dark:border-neutral-700 focus-within:border-neutral-900 dark:focus-within:border-neutral-100 transition-colors">
-                            <Mail className="w-8 h-8 text-neutral-400 shrink-0" />
+                          <div className="flex items-center gap-3 border-b-2 border-neutral-700 focus-within:border-amber-400 transition-colors py-3">
+                            <Mail className="w-5 h-5 text-neutral-500 shrink-0" />
                             <input
                               type="email"
                               placeholder={q.placeholder || "email@example.com"}
                               value={previewAnswers[q.labelKey] || ""}
                               onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                              className="text-2xl md:text-3xl font-bold bg-transparent py-4 w-full focus-visible:outline-none"
+                              className="bg-transparent text-white text-xl w-full focus-visible:outline-none placeholder:text-neutral-600"
                             />
                           </div>
                         )}
 
                         {/* 5. WEBSITE */}
                         {q.fieldType === "WEBSITE" && (
-                          <div className="flex items-center gap-4 border-b-2 border-neutral-300 dark:border-neutral-700 focus-within:border-neutral-900 dark:focus-within:border-neutral-100 transition-colors">
-                            <GlobeIcon className="w-8 h-8 text-neutral-400 shrink-0" />
+                          <div className="flex items-center gap-2 border-b-2 border-neutral-700 focus-within:border-amber-400 transition-colors py-3">
+                            <GlobeIcon className="w-5 h-5 text-neutral-500 shrink-0" />
+                            <span className="text-neutral-500 text-lg font-bold">https://</span>
                             <input
                               type="text"
-                              placeholder={q.placeholder || "https://example.com"}
+                              placeholder={q.placeholder || "example.com"}
                               value={previewAnswers[q.labelKey] || ""}
                               onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                              className="text-2xl md:text-3xl font-bold bg-transparent py-4 w-full focus-visible:outline-none"
+                              className="bg-transparent text-white text-xl w-full focus-visible:outline-none placeholder:text-neutral-600"
                             />
                           </div>
                         )}
@@ -2137,77 +2334,76 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           );
 
                           return (
-                            <div className="flex flex-col gap-2 relative max-w-2xl w-full">
-                              <div className="flex items-center gap-3 border-2 border-neutral-900 dark:border-neutral-100 p-4 bg-background">
+                            <div className="flex items-center gap-3 border-b-2 border-neutral-700 focus-within:border-amber-400 transition-colors py-3 relative w-full">
+                              <PhoneIcon className="w-5 h-5 text-neutral-500 shrink-0" />
+                              <div className="relative shrink-0">
                                 <button
                                   type="button"
-                                  onClick={() => setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_drop_open`]: !isDropdownOpen })}
-                                  className="flex items-center gap-2 px-4 py-2.5 text-base font-black bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 hover:bg-neutral-200 cursor-pointer rounded-none text-neutral-900 dark:text-neutral-100 shrink-0"
+                                  onClick={(e) => { e.stopPropagation(); setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_drop_open`]: !isDropdownOpen }); }}
+                                  className="flex items-center gap-1.5 border border-neutral-700 px-2 py-1 text-white text-xs font-black uppercase tracking-wider hover:border-amber-400 transition-colors"
                                 >
-                                  <span>{country.flag}</span>
-                                  <span>{country.dialCode}</span>
-                                  <ChevronDown className="w-5 h-5 text-neutral-500" />
+                                  {country.flag} {country.code}
+                                  <span className="text-neutral-500">{country.dialCode}</span>
                                 </button>
-                                <input
-                                  type="tel"
-                                  placeholder="(555) 000-0000"
-                                  value={previewAnswers[q.labelKey] || ""}
-                                  onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                                  className="text-xl md:text-2xl font-bold bg-transparent w-full focus-visible:outline-none py-2.5 text-neutral-900 dark:text-neutral-100"
-                                />
-                              </div>
-
-                              {isDropdownOpen && (
-                                <div className="absolute top-full left-0 z-30 w-full mt-1 border-2 border-neutral-900 bg-background shadow-2xl p-2 flex flex-col gap-2 max-h-56 overflow-y-auto animate-fade-in">
-                                  <input
-                                    placeholder="Search country / dial prefix..."
-                                    value={searchStr}
-                                    onChange={(e) => setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_search`]: e.target.value })}
-                                    className={`${inputClass} h-8 text-xs py-1`}
-                                  />
-                                  <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
-                                    {filtered.map((c, cIdx) => (
-                                      <button
-                                        key={c.code + "_" + cIdx}
-                                        type="button"
-                                        onClick={() => {
-                                          setPreviewAnswers({
-                                            ...previewAnswers,
-                                            [`${q.labelKey}_country`]: c,
-                                            [`${q.labelKey}_drop_open`]: false,
-                                            [`${q.labelKey}_search`]: ""
-                                          });
-                                        }}
-                                        className="w-full text-left px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider hover:bg-neutral-900 hover:text-white dark:hover:bg-neutral-100 dark:hover:text-black rounded-none cursor-pointer border-none text-neutral-900 dark:text-neutral-100 bg-background"
-                                      >
-                                        <span className="mr-1.5">{c.flag}</span>
-                                        <span className="mr-1">{c.name}</span>
-                                        <span className="text-muted-foreground font-medium">({c.dialCode})</span>
-                                      </button>
-                                    ))}
+                                {isDropdownOpen && (
+                                  <div
+                                    className="absolute top-full left-0 mt-1 z-30 w-64 bg-neutral-900 border border-neutral-700 shadow-2xl p-2 flex flex-col gap-2 max-h-64 overflow-hidden"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <input
+                                      autoFocus
+                                      placeholder="Search country..."
+                                      value={searchStr}
+                                      onChange={(e) => setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_search`]: e.target.value })}
+                                      className="bg-neutral-800 border border-neutral-700 px-2 py-1.5 text-xs text-white focus-visible:outline-none rounded-none w-full"
+                                    />
+                                    <div className="flex flex-col gap-0.5 overflow-y-auto max-h-40">
+                                      {filtered.slice(0, 40).map((c, cIdx) => (
+                                        <button
+                                          key={c.code + "_" + cIdx}
+                                          type="button"
+                                          onClick={() => {
+                                            setPreviewAnswers({
+                                              ...previewAnswers,
+                                              [`${q.labelKey}_country`]: c,
+                                              [`${q.labelKey}_drop_open`]: false,
+                                              [`${q.labelKey}_search`]: ""
+                                            });
+                                          }}
+                                          className="w-full text-left px-2 py-1.5 text-xs text-neutral-300 hover:bg-neutral-700 flex items-center justify-between border-none bg-background cursor-pointer"
+                                        >
+                                          <span>{c.flag} {c.name}</span>
+                                          <span className="text-neutral-500">{c.dialCode}</span>
+                                        </button>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
+                              </div>
+                              <input
+                                type="tel"
+                                placeholder={q.placeholder || "(555) 000-0000"}
+                                value={previewAnswers[q.labelKey] || ""}
+                                onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
+                                className="bg-transparent text-white text-xl w-full focus-visible:outline-none placeholder:text-neutral-600"
+                              />
                             </div>
                           );
                         })()}
 
                         {/* 7. DATE */}
                         {q.fieldType === "DATE" && (
-                          <div className="flex items-center gap-4 border-b-2 border-neutral-300 dark:border-neutral-700 focus-within:border-neutral-900 dark:focus-within:border-neutral-100 transition-colors">
-                            <Calendar className="w-8 h-8 text-neutral-400 shrink-0" />
-                            <input
-                              type="date"
-                              value={previewAnswers[q.labelKey] || ""}
-                              onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                              className="text-2xl md:text-3xl font-bold bg-transparent py-4 w-full focus-visible:outline-none dark:color-scheme-dark"
-                            />
-                          </div>
+                          <input
+                            type="date"
+                            value={previewAnswers[q.labelKey] || ""}
+                            onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
+                            className="bg-neutral-900 border-2 border-neutral-700 focus:border-amber-400 text-white text-lg py-3 px-4 w-full focus-visible:outline-none transition-colors"
+                          />
                         )}
 
                         {/* 8. RATING */}
                         {q.fieldType === "RATING" && (
-                          <div className="flex items-center gap-4 mt-4">
+                          <div className="flex gap-3 flex-wrap mt-2">
                             {[1, 2, 3, 4, 5].map((val) => {
                               const activeRating = previewAnswers[q.labelKey] || 0;
                               return (
@@ -2215,13 +2411,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   key={val}
                                   type="button"
                                   onClick={() => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: val })}
-                                  className="p-2 cursor-pointer transition-transform hover:scale-110 border-none bg-transparent"
+                                  className="p-1 cursor-pointer transition-transform hover:scale-125 border-none bg-transparent"
                                 >
                                   <Star
-                                    className={`w-14 h-14 transition-colors ${
+                                    className={`w-10 h-10 transition-colors ${
                                       val <= activeRating
-                                        ? "text-amber-500 fill-amber-500"
-                                        : "text-neutral-300 dark:text-neutral-700"
+                                        ? "text-amber-400 fill-amber-400"
+                                        : "text-neutral-600"
                                     }`}
                                   />
                                 </button>
@@ -2232,7 +2428,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 9. YES_NO */}
                         {q.fieldType === "YES_NO" && (
-                          <div className="grid grid-cols-2 gap-8 max-w-2xl mt-4 w-full">
+                          <div className="flex gap-4 flex-wrap mt-2">
                             {["YES", "NO"].map((choice) => {
                               const selectedVal = previewAnswers[q.labelKey];
                               const isSelected = selectedVal === choice;
@@ -2241,16 +2437,18 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   key={choice}
                                   type="button"
                                   onClick={() => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: choice })}
-                                  className={`border-2 p-10 md:p-14 text-center transition-all cursor-pointer rounded-none flex flex-col items-center justify-center gap-4 ${
+                                  className={`flex items-center gap-3 border-2 px-6 py-4 font-black uppercase tracking-widest text-sm transition-colors cursor-pointer ${
                                     isSelected
-                                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-black"
-                                      : "border-neutral-300 hover:border-neutral-900 dark:border-neutral-700 dark:hover:border-neutral-100 bg-background text-neutral-900 dark:text-neutral-100"
+                                      ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                                      : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
                                   }`}
                                 >
-                                  <span className="text-2xl md:text-3xl font-black tracking-widest uppercase">{choice}</span>
-                                  <span className="text-sm px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-muted-foreground font-black uppercase select-none border border-neutral-300 dark:border-neutral-700">
-                                    {choice === "YES" ? "Y" : "N"}
+                                  <span className={`w-6 h-6 flex items-center justify-center font-extrabold text-xs border ${
+                                    isSelected ? "bg-amber-400 text-black border-amber-400" : "border-neutral-600 text-neutral-400"
+                                  }`}>
+                                    {choice[0]}
                                   </span>
+                                  {choice}
                                 </button>
                               );
                             })}
@@ -2259,7 +2457,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 10. MULTIPLE_CHOICE */}
                         {q.fieldType === "MULTIPLE_CHOICE" && (
-                          <div className="flex flex-col gap-3.5 max-w-3xl w-full">
+                          <div className="flex flex-col gap-3 mt-2">
                             {getQuestionChoices(q).map((opt, oIdx) => {
                               const selectedVal = previewAnswers[q.labelKey];
                               const isSelected = selectedVal === opt;
@@ -2268,14 +2466,14 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   key={opt + "_" + oIdx}
                                   type="button"
                                   onClick={() => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: opt })}
-                                  className={`w-full text-left border-2 p-6 text-base md:text-lg font-bold uppercase tracking-wider transition-all cursor-pointer rounded-none flex items-center gap-5 ${
+                                  className={`flex items-center gap-4 border-2 px-5 py-4 text-sm font-bold uppercase tracking-wider transition-colors text-left cursor-pointer ${
                                     isSelected
-                                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-black"
-                                      : "border-neutral-300 hover:border-neutral-900 dark:border-neutral-700 dark:hover:border-neutral-100 bg-background text-neutral-900 dark:text-neutral-100"
+                                      ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                                      : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
                                   }`}
                                 >
-                                  <span className={`w-9 h-9 text-sm flex items-center justify-center font-black border ${
-                                    isSelected ? "border-white bg-white text-black" : "border-neutral-400 text-neutral-750"
+                                  <span className={`w-6 h-6 flex items-center justify-center text-[10px] font-black shrink-0 border ${
+                                    isSelected ? "bg-amber-400 text-black border-amber-400" : "border-neutral-600 text-neutral-400"
                                   }`}>
                                     {String.fromCharCode(65 + oIdx)}
                                   </span>
@@ -2288,7 +2486,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 11. CHECKBOX */}
                         {q.fieldType === "CHECKBOX" && (
-                          <div className="flex flex-col gap-3.5 max-w-3xl w-full">
+                          <div className="flex flex-col gap-3 mt-2">
                             {getQuestionChoices(q).map((opt, oIdx) => {
                               const selectedList: string[] = previewAnswers[q.labelKey] || [];
                               const isSelected = selectedList.includes(opt);
@@ -2302,16 +2500,16 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                       : [...selectedList, opt];
                                     setPreviewAnswers({ ...previewAnswers, [q.labelKey]: next });
                                   }}
-                                  className={`w-full text-left border-2 p-6 text-base md:text-lg font-bold uppercase tracking-wider transition-all cursor-pointer rounded-none flex items-center gap-5 ${
+                                  className={`flex items-center gap-4 border-2 px-5 py-4 text-sm font-bold uppercase tracking-wider transition-colors text-left cursor-pointer ${
                                     isSelected
-                                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-black"
-                                      : "border-neutral-300 hover:border-neutral-900 dark:border-neutral-700 dark:hover:border-neutral-100 bg-background text-neutral-900 dark:text-neutral-100"
+                                      ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                                      : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
                                   }`}
                                 >
-                                  <span className={`w-6 h-6 border-2 flex items-center justify-center shrink-0 ${
-                                    isSelected ? "border-white bg-white text-black" : "border-neutral-400 bg-background"
+                                  <span className={`w-5 h-5 flex items-center justify-center shrink-0 border-2 transition-colors ${
+                                    isSelected ? "bg-amber-400 border-amber-400" : "border-neutral-600"
                                   }`}>
-                                    {isSelected && <span className="w-3 h-3 bg-neutral-900 dark:bg-white" />}
+                                    {isSelected && <Check className="w-3 h-3 text-black" />}
                                   </span>
                                   {opt}
                                 </button>
@@ -2326,18 +2524,20 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           const isOpen = previewAnswers[`${q.labelKey}_drop_open`] || false;
 
                           return (
-                            <div className="flex flex-col gap-2 relative max-w-3xl w-full">
+                            <div className="relative max-w-md mt-2 w-full">
                               <button
                                 type="button"
-                                onClick={() => setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_drop_open`]: !isOpen })}
-                                className="w-full flex items-center justify-between border-2 border-neutral-900 dark:border-neutral-100 p-6 text-base md:text-lg font-black uppercase tracking-widest bg-background hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors cursor-pointer rounded-none text-left text-neutral-900 dark:text-neutral-100"
+                                onClick={(e) => { e.stopPropagation(); setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_drop_open`]: !isOpen }); }}
+                                className="w-full flex items-center justify-between border-2 border-neutral-700 hover:border-amber-400 px-4 py-3 text-sm font-black uppercase tracking-wider text-left transition-colors bg-neutral-900"
                               >
-                                <span>{val || "Select an option..."}</span>
-                                <ChevronDown className="w-5 h-5 shrink-0 text-neutral-900 dark:text-neutral-100" />
+                                <span className={val ? "text-white" : "text-neutral-500"}>
+                                  {val || "Select an option..."}
+                                </span>
+                                <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" />
                               </button>
 
                               {isOpen && (
-                                <div className="absolute top-full left-0 mt-1 z-30 w-full border-2 border-neutral-900 dark:border-neutral-100 bg-background shadow-2xl p-1.5 flex flex-col gap-0.5 max-h-56 overflow-y-auto animate-fade-in">
+                                <div className="absolute top-full left-0 mt-1 z-20 w-full bg-neutral-900 border border-neutral-700 shadow-2xl max-h-48 overflow-y-auto animate-fade-in">
                                   {getQuestionChoices(q).map((opt, oIdx) => (
                                     <button
                                       key={opt + "_" + oIdx}
@@ -2349,7 +2549,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                           [`${q.labelKey}_drop_open`]: false
                                         });
                                       }}
-                                      className="w-full text-left px-5 py-4 text-base font-bold uppercase tracking-wider hover:bg-neutral-900 hover:text-white dark:hover:bg-neutral-100 dark:hover:text-black transition-colors rounded-none cursor-pointer bg-background border-none text-neutral-900 dark:text-neutral-100"
+                                      className="w-full text-left px-4 py-3 text-sm font-bold uppercase tracking-wide hover:bg-amber-400/10 hover:text-amber-400 transition-colors text-neutral-300 bg-neutral-900 border-none cursor-pointer"
                                     >
                                       {opt}
                                     </button>
@@ -2367,18 +2567,16 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           const percent = max > min ? Math.min(100, Math.max(0, ((currentSliderVal - min) / (max - min)) * 100)) : 0;
 
                           return (
-                            <div className="flex flex-col gap-6 mt-6 max-w-3xl w-full">
-                              <div className="relative w-full h-8 border-2 border-neutral-900 dark:border-neutral-100 bg-neutral-100 dark:bg-neutral-900 select-none">
+                            <div className="flex flex-col gap-4 max-w-lg mt-2 w-full">
+                              <div className="relative w-full h-4 bg-neutral-800 border border-neutral-700 select-none">
                                 <div 
-                                  className="absolute left-0 top-0 bottom-0 bg-amber-500 dark:bg-amber-400 border-r-2 border-neutral-900 dark:border-neutral-100" 
+                                  className="absolute left-0 top-0 bottom-0 bg-amber-400" 
                                   style={{ width: `${percent}%` }}
                                 />
                                 <div 
-                                  className="absolute top-1/2 -translate-y-1/2 w-10 h-10 border-2 border-neutral-900 dark:border-neutral-100 bg-neutral-900 dark:bg-neutral-100 rotate-45 shadow-md flex items-center justify-center pointer-events-none"
-                                  style={{ left: `calc(${percent}% - 20px)` }}
-                                >
-                                  <div className="w-3 h-3 bg-background dark:bg-neutral-900 rotate-45" />
-                                </div>
+                                  className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-amber-400 rotate-45 border-2 border-black flex items-center justify-center pointer-events-none"
+                                  style={{ left: `calc(${percent}% - 12px)` }}
+                                />
                                 <input
                                   type="range"
                                   min={min}
@@ -2389,58 +2587,62 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                 />
                               </div>
 
-                              <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-neutral-700 dark:text-neutral-300">
-                                <span className="border border-neutral-300 dark:border-neutral-700 px-4 py-1.5 bg-neutral-50 dark:bg-neutral-950">
-                                  {min} (Min)
-                                </span>
-                                <span className="text-base text-amber-600 dark:text-amber-400 font-extrabold bg-neutral-900 text-white dark:bg-white dark:text-black px-4.5 py-1.5 rounded-none border border-neutral-900 dark:border-white">
-                                  Value: {currentSliderVal}
-                                </span>
-                                <span className="border border-neutral-300 dark:border-neutral-700 px-4 py-1.5 bg-neutral-50 dark:bg-neutral-950">
-                                  {max} (Max)
-                                </span>
+                              <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-neutral-500">
+                                <span>{min}</span>
+                                <span className="text-amber-400 text-sm">{currentSliderVal}</span>
+                                <span>{max}</span>
                               </div>
                             </div>
                           );
                         })()}
 
-                        {/* 14. CONTACT_INFO & 15. ADDRESS & any parent question containing children */}
+                        {/* 14. CONTACT_INFO & 15. ADDRESS */}
                         {(q.fieldType === "CONTACT_INFO" || q.fieldType === "ADDRESS") && (() => {
                           const parentId = q.id || q.clientTempId;
                           const children = questions.filter(item => item.parentId === parentId);
                           return (
-                            <div className="flex flex-col gap-6 max-w-3xl w-full">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-2 border-neutral-900 dark:border-neutral-100 p-8 bg-background text-neutral-900 dark:text-neutral-100 animate-fade-in">
-                                {children.map((child) => {
-                                  return (
-                                    <div key={child.id || child.clientTempId} className="flex flex-col gap-1.5 sm:col-span-2">
-                                      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                                        {child.label}
-                                        {child.isRequired && <span className="text-red-500">*</span>}
-                                      </span>
-                                      <input 
-                                        type={child.fieldType === "EMAIL" ? "email" : child.fieldType === "PHONE" ? "tel" : "text"} 
-                                        placeholder={child.placeholder || "Type your response..."} 
-                                        value={previewAnswers[child.labelKey] || ""}
-                                        onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })}
-                                        className="border-b-2 border-neutral-350 bg-transparent text-lg py-2 focus-visible:outline-none focus:border-neutral-900 dark:focus:border-neutral-100 text-neutral-900 dark:text-neutral-100 font-bold" 
-                                      />
-                                    </div>
-                                  );
-                                })}
-                                {children.length === 0 && (
-                                  <p className="text-xs text-muted-foreground uppercase py-4 font-bold text-center">No fields configured.</p>
-                                )}
-                              </div>
+                            <div className="flex flex-col gap-6 mt-2 w-full">
+                              {children.map((child) => {
+                                return (
+                                  <div key={child.id || child.clientTempId} className="flex flex-col gap-2">
+                                    <span className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1">
+                                      {child.label}
+                                      {child.isRequired && <span className="text-red-400 ml-1">*</span>}
+                                    </span>
+                                    {child.fieldType === "EMAIL" ? (
+                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
+                                        <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
+                                        <input type="email" placeholder={child.placeholder || "email@example.com"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
+                                      </div>
+                                    ) : child.fieldType === "PHONE" ? (
+                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
+                                        <PhoneIcon className="w-4 h-4 text-neutral-500 shrink-0" />
+                                        <input type="tel" placeholder={child.placeholder || "(555) 000-0000"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
+                                      </div>
+                                    ) : child.fieldType === "WEBSITE" ? (
+                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
+                                        <GlobeIcon className="w-4 h-4 text-neutral-500 shrink-0" />
+                                        <span className="text-neutral-500 font-bold">https://</span>
+                                        <input type="text" placeholder={child.placeholder || "yourwebsite.com"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
+                                      </div>
+                                    ) : (
+                                      <input type="text" placeholder={child.placeholder || ""} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent border-b border-neutral-700 focus:border-amber-400 text-white py-2 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600 text-base" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {children.length === 0 && (
+                                <p className="text-xs text-muted-foreground uppercase py-4 font-bold text-center">No fields configured.</p>
+                              )}
                             </div>
                           );
                         })()}
 
                         {/* 16. IMAGE */}
                         {q.fieldType === "IMAGE" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-3xl w-full">
-                            <ImageIcon className="w-16 h-16 text-neutral-400 animate-pulse" />
-                            <span className="text-base font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Image File</span>
+                          <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
+                            <ImageIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
+                            <span className="text-base font-black uppercase tracking-widest text-white">Upload Image File</span>
                             <input 
                               type="file" 
                               accept="image/*"
@@ -2448,7 +2650,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-500 font-bold bg-neutral-900 text-white dark:bg-white dark:text-black px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-900 dark:border-white">
+                              <span className="text-xs text-amber-450 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2457,9 +2659,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 17. VIDEO */}
                         {q.fieldType === "VIDEO" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-3xl w-full">
-                            <VideoIcon className="w-16 h-16 text-neutral-400 animate-pulse" />
-                            <span className="text-base font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Video Attachment</span>
+                          <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
+                            <VideoIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
+                            <span className="text-base font-black uppercase tracking-widest text-white">Upload Video Attachment</span>
                             <input 
                               type="file" 
                               accept="video/*"
@@ -2467,7 +2669,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-500 font-bold bg-neutral-900 text-white dark:bg-white dark:text-black px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-900 dark:border-white">
+                              <span className="text-xs text-amber-450 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2476,9 +2678,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 18. AUDIO */}
                         {q.fieldType === "AUDIO" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-3xl w-full">
-                            <AudioIcon className="w-16 h-16 text-neutral-400 animate-pulse" />
-                            <span className="text-base font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Sound / Audio</span>
+                          <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
+                            <AudioIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
+                            <span className="text-base font-black uppercase tracking-widest text-white">Upload Sound / Audio</span>
                             <input 
                               type="file" 
                               accept="audio/*"
@@ -2486,7 +2688,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-500 font-bold bg-neutral-900 text-white dark:bg-white dark:text-black px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-900 dark:border-white">
+                              <span className="text-xs text-amber-450 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2495,16 +2697,16 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 19. FILE */}
                         {q.fieldType === "FILE" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-3xl w-full">
-                            <FileIcon className="w-16 h-16 text-neutral-400 animate-pulse" />
-                            <span className="text-base font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Document attachment</span>
+                          <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
+                            <FileIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
+                            <span className="text-base font-black uppercase tracking-widest text-white">Upload Document attachment</span>
                             <input 
                               type="file" 
                               onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.files?.[0]?.name || "" })}
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-500 font-bold bg-neutral-900 text-white dark:bg-white dark:text-black px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-900 dark:border-white">
+                              <span className="text-xs text-amber-455 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2516,14 +2718,14 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
             </div>
 
             {/* Footer Navigation bar */}
-            <div className="border-t-2 border-neutral-900 dark:border-neutral-100 pt-6 flex items-center justify-between">
+            <div className="border-t-2 border-neutral-800 pt-6 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setPreviewStepIndex(Math.max(0, previewStepIndex - 1))}
                 disabled={previewStepIndex === 0}
-                className={`${buttonSecondaryClass} h-10 px-5 text-xs gap-1.5`}
+                className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-xs font-black uppercase tracking-widest bg-transparent border-none cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
               >
-                Back
+                <ArrowLeft className="w-4 h-4" /> Back
               </button>
               
               {(() => {
@@ -2537,7 +2739,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     <button
                       type="button"
                       onClick={() => setIsPreviewOpen(false)}
-                      className={`${buttonPrimaryClass} h-10 px-5 text-xs`}
+                      className="flex items-center gap-2 bg-amber-400 text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-amber-300 transition-colors cursor-pointer"
                     >
                       Close Preview
                     </button>
@@ -2572,9 +2774,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   <button
                     type="button"
                     onClick={handleNext}
-                    className={`${buttonPrimaryClass} h-10 px-5 text-xs gap-1.5`}
+                    className="flex items-center gap-2 bg-amber-400 text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-amber-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isFinal ? "Submit" : "Next ↵"}
+                    {isFinal ? <><Check className="w-4 h-4" /> Submit</> : <>Next <ArrowRight className="w-4 h-4" /></>}
                   </button>
                 );
               })()}

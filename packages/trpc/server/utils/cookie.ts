@@ -46,13 +46,13 @@ const REFRESH_COOKIE_NAME = 'refresh-cookie';
 export function setAuthenticationCookie(ctx:TRPCContext, accessToken:string, refreshToken?: string){
      const isProd = process.env.NODE_ENV === "production";
 
-     // 1. Set Access Token (expires in 15 mins)
+     // 1. Set Access Token (expires in 30 days)
      ctx.createCookie(ACCESS_COOKIE_NAME, accessToken, {
           path: '/',
           httpOnly: true,
           secure: isProd,
           sameSite: "lax",
-          maxAge: 15 * 60 * 1000, // 15 minutes
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
      });
 
      if (refreshToken) {

@@ -6,6 +6,10 @@ import { useUser } from "~/hooks/api/auth/useUser";
 import { useCreateForm } from "~/hooks/api/forms/useCreateForm";
 import { useDeleteForm } from "~/hooks/api/forms/useDeleteForm";
 import { useUserForms } from "~/hooks/api/forms/useUserForms";
+import { usePublishForm } from "~/hooks/api/forms/usePublishForm";
+import { toast } from "sonner";
+import { ExternalLink, Link as LinkIcon, Copy, QrCode } from "lucide-react";
+import QRCode from "qrcode";
 
 type FormStatus = "draft" | "published";
 
@@ -54,6 +58,31 @@ export default function DashboardPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
 
+  // Publish & Share Modal States
+  const [selectedFormForModal, setSelectedFormForModal] = useState<any | null>(null);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [modalVisibility, setModalVisibility] = useState<"PUBLIC" | "PRIVATE" | "UNLISTED">("UNLISTED");
+  const [modalValidTill, setModalValidTill] = useState<string>("");
+  const [modalIsPublished, setModalIsPublished] = useState(false);
+  const [modalShareTab, setModalShareTab] = useState<"link" | "qr">("link");
+  const [modalLinkCopied, setModalLinkCopied] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (selectedFormForModal?.slug) {
+      const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${selectedFormForModal.slug}`;
+      QRCode.toDataURL(shareUrl, { width: 160, margin: 2 })
+        .then((url) => {
+          setQrCodeDataUrl(url);
+        })
+        .catch((err) => {
+          console.error("Failed to generate QR code", err);
+        });
+    } else {
+      setQrCodeDataUrl("");
+    }
+  }, [selectedFormForModal?.slug]);
+
   const displayForms = realForms || [];
 
   useEffect(() => {
@@ -61,6 +90,8 @@ export default function DashboardPage() {
       router.replace("/sign-in");
     }
   }, [user, isUserLoading, isFetched, router]);
+
+  const { publishFormAsync, isPending: isPublishing } = usePublishForm();
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,9 +111,73 @@ export default function DashboardPage() {
     try {
       await deleteFormAsync({ formId: id });
       await refetchForms();
+      toast.success("Form deleted successfully!");
     } catch (err) {
       console.error("Failed to delete form:", err);
+      toast.error("Failed to delete form.");
     }
+  };
+
+  const openPublishModal = (e: React.MouseEvent, form: any, defaultTab: "link" | "qr" = "link") => {
+    e.stopPropagation();
+    setSelectedFormForModal(form);
+    setModalIsPublished(form.isPublished);
+    setModalVisibility(form.visibility || "UNLISTED");
+    setModalValidTill(form.validTill ? new Date(form.validTill).toISOString().slice(0, 16) : "");
+    setModalShareTab(defaultTab);
+    setShowPublishModal(true);
+  };
+
+  const handleModalTogglePublish = async () => {
+    if (!selectedFormForModal) return;
+    const nextPublishState = !modalIsPublished;
+    const publishToastId = toast.loading(nextPublishState ? "Publishing form..." : "Unpublishing form...");
+    try {
+      await publishFormAsync({
+        formId: selectedFormForModal.id,
+        isPublished: nextPublishState,
+        visibility: modalVisibility,
+        validTill: modalValidTill ? new Date(modalValidTill) : null,
+      });
+      setModalIsPublished(nextPublishState);
+      toast.success(nextPublishState ? "Form published successfully!" : "Form unpublished.", { id: publishToastId });
+      await refetchForms();
+      setSelectedFormForModal((prev: any) => prev ? { ...prev, isPublished: nextPublishState } : null);
+    } catch (err) {
+      console.error("Failed to toggle publish status", err);
+      toast.error("Failed to update publish state.", { id: publishToastId });
+    }
+  };
+
+  const handleModalSaveSettings = async () => {
+    if (!selectedFormForModal) return;
+    const publishToastId = toast.loading("Saving publish settings...");
+    try {
+      await publishFormAsync({
+        formId: selectedFormForModal.id,
+        isPublished: modalIsPublished,
+        visibility: modalVisibility,
+        validTill: modalValidTill ? new Date(modalValidTill) : null,
+      });
+      toast.success("Publish settings saved!", { id: publishToastId });
+      await refetchForms();
+    } catch (err) {
+      console.error("Failed to save publish settings", err);
+      toast.error("Failed to save settings.", { id: publishToastId });
+    }
+  };
+
+  const handleModalCopyLink = () => {
+    if (!selectedFormForModal?.slug) return;
+    const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${selectedFormForModal.slug}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setModalLinkCopied(true);
+      toast.success("Share link copied to clipboard!");
+      setTimeout(() => setModalLinkCopied(false), 2000);
+    }).catch((err) => {
+      console.error("Failed to copy link", err);
+      toast.error("Failed to copy link.");
+    });
   };
 
   if (isUserLoading || isFormsLoading || !user?.id) {
@@ -185,7 +280,8 @@ export default function DashboardPage() {
               {displayForms.map((form) => (
                 <li
                   key={form.id}
-                  className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between hover:border-neutral-900 dark:hover:border-neutral-100 transition-colors"
+                  onClick={() => router.push(`/dashboard/edit/${form.id}`)}
+                  className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between hover:border-neutral-900 dark:hover:border-neutral-100 transition-colors cursor-pointer"
                 >
                   <div className="flex flex-col gap-2 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -201,17 +297,37 @@ export default function DashboardPage() {
                   <div className="flex flex-wrap gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() => router.push(`/dashboard/edit/${form.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/dashboard/edit/${form.id}`);
+                      }}
                       className={`${buttonSecondaryClass} h-9 px-3 text-xs`}
                     >
                       Edit
                     </button>
-                    <button type="button" className={`${buttonSecondaryClass} h-9 px-3 text-xs`}>
-                      Share
-                    </button>
+                    {form.isPublished ? (
+                      <button
+                        type="button"
+                        onClick={(e) => openPublishModal(e, form, "link")}
+                        className={`${buttonSecondaryClass} h-9 px-3 text-xs`}
+                      >
+                        Share
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => openPublishModal(e, form, "link")}
+                        className={`${buttonSecondaryClass} h-9 px-3 text-xs bg-amber-500 hover:bg-amber-650 border-neutral-900 text-neutral-900 dark:bg-amber-400 dark:hover:bg-amber-450 dark:border-neutral-100`}
+                      >
+                        Publish
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => handleDelete(form.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(form.id);
+                      }}
                       className={`${buttonSecondaryClass} h-9 px-3 text-xs border-red-600 dark:border-red-600 text-red-600 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white`}
                     >
                       Delete
@@ -296,6 +412,198 @@ export default function DashboardPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Publish & Share Modal */}
+      {showPublishModal && selectedFormForModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+          onClick={() => setShowPublishModal(false)}
+        >
+          <div
+            className="bg-background border-2 border-neutral-900 dark:border-neutral-100 w-full max-w-md flex flex-col gap-0 shadow-2xl text-neutral-900 dark:text-neutral-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="border-b-2 border-neutral-900 dark:border-neutral-100 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                <ExternalLink className="w-4 h-4 text-amber-500" /> Publish & Share
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-6 px-6 py-6">
+              {/* Publish Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-widest">
+                    {modalIsPublished ? "Published" : "Unpublished"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                    {modalIsPublished
+                      ? "Your form is live and accepting responses."
+                      : "Your form is a draft — not visible to the public."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleModalTogglePublish}
+                  disabled={isPublishing}
+                  className={`${modalIsPublished ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                >
+                  {isPublishing ? "Updating…" : modalIsPublished ? "Unpublish" : "Publish Now"}
+                </button>
+              </div>
+
+              {/* Visibility Selector */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Visibility
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["PUBLIC", "UNLISTED", "PRIVATE"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setModalVisibility(v)}
+                      className={`border-2 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                        modalVisibility === v
+                          ? "border-neutral-900 dark:border-neutral-100 bg-neutral-900 text-white dark:bg-white dark:text-black"
+                          : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-600 bg-background"
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                  {modalVisibility === "PUBLIC" && "Anyone can find and fill this form."}
+                  {modalVisibility === "UNLISTED" && "Only people with the link can access."}
+                  {modalVisibility === "PRIVATE" && "Form is hidden from all respondents."}
+                </p>
+              </div>
+
+              {/* Expiration Settings */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Expiration Date (optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={modalValidTill}
+                  onChange={(e) => setModalValidTill(e.target.value)}
+                  className={`${inputClass} text-xs`}
+                />
+                {modalValidTill && (
+                  <button
+                    type="button"
+                    onClick={() => setModalValidTill("")}
+                    className="text-[9px] text-red-500 hover:text-red-700 font-bold uppercase tracking-wider text-left cursor-pointer bg-transparent border-none"
+                  >
+                    ✕ Clear expiration
+                  </button>
+                )}
+              </div>
+
+              {/* Save Settings Button */}
+              <button
+                type="button"
+                onClick={handleModalSaveSettings}
+                disabled={isPublishing}
+                className={`${buttonSecondaryClass} w-full h-10 text-xs`}
+              >
+                Save Publish Settings
+              </button>
+
+              {/* Share link and QR (Only if published) */}
+              {modalIsPublished && (
+                <div className="border-t-2 border-neutral-200 dark:border-neutral-800 pt-4 flex flex-col gap-3">
+                  {/* Tab switcher */}
+                  <div className="flex border-2 border-neutral-200 dark:border-neutral-800">
+                    <button
+                      type="button"
+                      onClick={() => setModalShareTab("link")}
+                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer ${
+                        modalShareTab === "link"
+                          ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-900 bg-background text-neutral-900 dark:text-neutral-100"
+                      }`}
+                    >
+                      <LinkIcon className="w-3 h-3" /> Link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModalShareTab("qr")}
+                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer ${
+                        modalShareTab === "qr"
+                          ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-900 bg-background text-neutral-900 dark:text-neutral-100"
+                      }`}
+                    >
+                      <QrCode className="w-3 h-3" /> QR Code
+                    </button>
+                  </div>
+
+                  {modalShareTab === "link" && (
+                    <div className="flex gap-2">
+                      <input
+                        readOnly
+                        value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${selectedFormForModal.slug}`}
+                        className={`${inputClass} text-xs flex-1 select-all`}
+                        onFocus={(e) => e.target.select()}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleModalCopyLink}
+                        className={`${buttonPrimaryClass} h-10 px-3 text-xs flex items-center gap-1.5 shrink-0`}
+                      >
+                        {modalLinkCopied ? (
+                          "Copied!"
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" /> Copy
+                          </>
+                        )}
+                      </button>
+                      <a
+                        href={`/share/${selectedFormForModal.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${buttonSecondaryClass} h-10 px-3 text-xs flex items-center gap-1.5 shrink-0`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Open
+                      </a>
+                    </div>
+                  )}
+
+                  {modalShareTab === "qr" && qrCodeDataUrl && (
+                    <div className="flex flex-col items-center gap-3 py-2 animate-fade-in">
+                      <div className="border-2 border-neutral-200 dark:border-neutral-800 p-4 bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={qrCodeDataUrl}
+                          alt="QR Code"
+                          width={160}
+                          height={160}
+                          className="block"
+                        />
+                      </div>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest text-center">
+                        Scan to open the form
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

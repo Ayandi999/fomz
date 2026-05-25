@@ -73,12 +73,30 @@ export const deleteFormFieldInput = z.object({
 
 export type DeleteFormFieldInput = z.infer<typeof deleteFormFieldInput>;
 
-
 export const publishFormInput = z.object({
   formId: z.string().uuid().describe("Id of the form"),
   createdBy: z.string().uuid().describe("Id of the user"),
   isPublished: z.boolean().describe("Publish state"),
+  visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).optional().describe("Visibility level"),
+  validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
 });
 
 export type PublishFormInput = z.infer<typeof publishFormInput>;
 
+export const getPublicFormBySlugInput = z.object({
+  slug: z.string().describe("Form URL slug"),
+});
+
+export type GetPublicFormBySlugInput = z.infer<typeof getPublicFormBySlugInput>;
+
+export const submitFormResponseInput = z.object({
+  formId: z.string().uuid().describe("Id of the form"),
+  answers: z.array(
+    z.object({
+      fieldId: z.string().uuid().describe("Id of the question/field"),
+      value: z.string().nullable().optional().describe("Textual response value"),
+    })
+  ).describe("Respondent answers"),
+});
+
+export type SubmitFormResponseInput = z.infer<typeof submitFormResponseInput>;

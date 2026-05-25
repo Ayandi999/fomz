@@ -7,10 +7,14 @@ import {
   type PutFormFieldsInput,
   type DeleteFormFieldInput,
   type PublishFormInput,
+  type GetPublicFormBySlugInput,
+  type SubmitFormResponseInput,
 } from "./model";
 import { db, and, eq, desc, inArray } from "@repo/database";
 import { formsTable } from "@repo/database/models/form";
 import { formField } from "@repo/database/models/formFields";
+import { submissionsTable } from "@repo/database/models/submissions";
+import { answersTable } from "@repo/database/models/answers";
 
 class formService {
   public async createForm(payload: CreateFormInput) {
@@ -265,16 +269,134 @@ class formService {
   }
 
   public async publishForm(payload: PublishFormInput) {
-    const { formId, createdBy, isPublished } = payload;
+    const { formId, createdBy, isPublished, visibility, validTill } = payload;
     const updated = await db
       .update(formsTable)
-      .set({ isPublished })
+      .set({ 
+        isPublished,
+        ...(visibility !== undefined && { visibility }),
+        ...(validTill !== undefined && { validTill }),
+        updatedAt: new Date(),
+      })
       .where(and(eq(formsTable.formId, formId), eq(formsTable.createdBy, createdBy)))
       .returning({ formId: formsTable.formId });
 
     if (!updated || updated.length === 0) {
       throw new Error("Form not found or you do not have permission to publish it");
     }
+
+    return { success: true };
+  }
+
+  public async getPublicFormBySlug(payload: GetPublicFormBySlugInput) {
+    const { slug } = payload;
+
+    // 1. Look up the published form by slug
+    const forms = await db
+      .select({
+        formId: formsTable.formId,
+        isPublished: formsTable.isPublished,
+        visibility: formsTable.visibility,
+        validTill: formsTable.validTill,
+      })
+      .from(formsTable)
+      .where(eq(formsTable.slug, slug));
+
+    if (!forms || forms.length === 0) {
+      throw new Error("Form not found");
+    }
+
+    const form = forms[0]!;
+
+    if (!form.isPublished) {
+      throw new Error("This form is not published");
+    }
+
+    if (form.visibility === "PRIVATE") {
+      throw new Error("This form is private");
+    }
+
+    if (form.validTill && new Date() > new Date(form.validTill)) {
+      throw new Error("This form has expired");
+    }
+
+    // 2. Fetch only the fields needed to render the UI — no internal metadata
+    const fields = await db
+      .select({
+        id: formField.id,
+        formId: formField.formId,
+        label: formField.label,
+        placeholder: formField.placeholder,
+        fieldType: formField.fieldType,
+        isRequired: formField.isRequired,
+        parentId: formField.parentId,
+        index: formField.index,
+      })
+      .from(formField)
+      .where(eq(formField.formId, form.formId))
+      .orderBy(formField.index);
+
+    if (!fields || fields.length === 0) {
+      throw new Error("This form has no questions configured yet");
+    }
+
+    return {
+      formId: form.formId,
+      fields,
+    };
+  }
+
+  public async submitFormResponse(payload: SubmitFormResponseInput) {
+    const { formId, answers } = payload;
+
+    // 1. Verify form exists and is active/published
+    const forms = await db
+      .select({
+        formId: formsTable.formId,
+        isPublished: formsTable.isPublished,
+        validTill: formsTable.validTill,
+      })
+      .from(formsTable)
+      .where(eq(formsTable.formId, formId));
+
+    if (!forms || forms.length === 0) {
+      throw new Error("Form not found");
+    }
+
+    const form = forms[0]!;
+
+    if (!form.isPublished) {
+      throw new Error("This form is not accepting responses");
+    }
+
+    if (form.validTill && new Date() > new Date(form.validTill)) {
+      throw new Error("This form has expired and is no longer accepting responses");
+    }
+
+    // 2. Insert submission and answers in a transaction
+    await db.transaction(async (tx) => {
+      // Create the parent submission record
+      const inserted = await tx
+        .insert(submissionsTable)
+        .values({ formId })
+        .returning({ id: submissionsTable.id });
+
+      if (!inserted || inserted.length === 0 || !inserted[0]?.id) {
+        throw new Error("Failed to create submission");
+      }
+
+      const submissionId = inserted[0].id;
+
+      // Insert each individual answer
+      for (const answer of answers) {
+        if (!answer.fieldId) continue;
+        await tx.insert(answersTable).values({
+          submissionId,
+          fieldId: answer.fieldId,
+          value: answer.value ?? null,
+        });
+      }
+    });
 
     return { success: true };
   }
