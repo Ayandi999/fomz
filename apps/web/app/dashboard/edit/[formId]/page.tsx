@@ -184,6 +184,71 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     }
   }, [activeIdx, activeQuestion?.placeholder]);
 
+  // Unified validation for preview mode steps
+  const validatePreviewStep = (q: any) => {
+    if (!q) return true;
+    if (["WELCOME", "INFO"].includes(q.fieldType)) return true;
+
+    const val = (previewAnswers[q.labelKey] || "").trim();
+    const isEmailValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (q.isRequired) {
+      const parentId = q.id || q.clientTempId;
+      const children = questions.filter(item => item.parentId === parentId);
+
+      if (children.length > 0) {
+        const unanswered = children.filter(c => !previewAnswers[c.labelKey]?.trim());
+        if (unanswered.length > 0) {
+          toast.error(`Please fill in all required sub-fields.`);
+          return false;
+        }
+      } else if (["CHECKBOX"].includes(q.fieldType)) {
+        const hasAnswer = !!(previewAnswers[q.labelKey] && previewAnswers[q.labelKey].length > 0);
+        if (!hasAnswer) {
+          toast.error(`Please answer the required question: "${q.label}" before proceeding.`);
+          return false;
+        }
+      } else {
+        const hasAnswer = !!previewAnswers[q.labelKey];
+        if (!hasAnswer) {
+          toast.error(`Please answer the required question: "${q.label}" before proceeding.`);
+          return false;
+        }
+      }
+    }
+
+    // Format Validations for populated fields
+    if (val) {
+      if (q.fieldType === "EMAIL" && !isEmailValid(val)) {
+        toast.error("Please enter a valid email address.");
+        return false;
+      }
+      if (q.fieldType === "PHONE" && val.length < 7) {
+        toast.error("Please enter a valid phone number (at least 7 digits).");
+        return false;
+      }
+    }
+
+    // Child validations for contact cards and addresses
+    const parentId = q.id || q.clientTempId;
+    const children = questions.filter(item => item.parentId === parentId);
+    for (const child of children) {
+      const childVal = (previewAnswers[child.labelKey] || "").trim();
+      if (childVal) {
+        if (child.fieldType === "EMAIL" && !isEmailValid(childVal)) {
+          toast.error(`Please enter a valid email address for "${child.label}".`);
+          return false;
+        }
+        if (child.fieldType === "PHONE" && childVal.length < 7) {
+          toast.error(`Please enter a valid phone number (at least 7 digits) for "${child.label}".`);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
   // Keyboard listeners for preview mode navigation & Yes/No controls
   useEffect(() => {
     if (!isPreviewOpen) return;
@@ -213,23 +278,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
           return;
         }
 
-        if (q.isRequired) {
-          let hasAnswer = false;
-          const parentId = q.id || q.clientTempId;
-          const children = questions.filter(item => item.parentId === parentId);
-          if (children.length > 0) {
-            const unansweredRequiredChildren = children.filter(c => !previewAnswers[c.labelKey]?.trim());
-            hasAnswer = unansweredRequiredChildren.length === 0;
-          } else if (["CHECKBOX"].includes(q.fieldType)) {
-            hasAnswer = !!(previewAnswers[q.labelKey] && previewAnswers[q.labelKey].length > 0);
-          } else {
-            hasAnswer = !!previewAnswers[q.labelKey];
-          }
-
-          if (!hasAnswer) {
-            toast.error(`Please answer the required question: "${q.label}" before proceeding.`);
-            return;
-          }
+        if (!validatePreviewStep(q)) {
+          return;
         }
 
         setPreviewStepIndex(previewStepIndex + 1);
@@ -547,9 +597,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     const tempId = `temp_${Date.now()}`;
     const nextIndex = questions.length > 0 ? Math.max(...questions.map((q) => q.index)) + 1.0 : 1.0;
     
+    const formattedLabel = type === "YES_NO" 
+      ? "Yes/No" 
+      : type.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+
     const newQuestion: QuestionItem = {
       clientTempId: tempId,
-      label: `New ${type.replace("_", " ")} Question`,
+      label: formattedLabel,
       placeholder: "",
       description: "",
       fieldType: type,
@@ -2384,7 +2438,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                 type="tel"
                                 placeholder={q.placeholder || "(555) 000-0000"}
                                 value={previewAnswers[q.labelKey] || ""}
-                                onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
+                                onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value.replace(/[^0-9]/g, "") })}
                                 className="bg-transparent text-white text-xl w-full focus-visible:outline-none placeholder:text-neutral-600"
                               />
                             </div>
@@ -2397,6 +2451,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             type="date"
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
+                            onClick={(e) => e.currentTarget.showPicker?.()}
                             className="bg-neutral-900 border-2 border-neutral-700 focus:border-amber-400 text-white text-lg py-3 px-4 w-full focus-visible:outline-none transition-colors"
                           />
                         )}
@@ -2617,7 +2672,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                     ) : child.fieldType === "PHONE" ? (
                                       <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
                                         <PhoneIcon className="w-4 h-4 text-neutral-500 shrink-0" />
-                                        <input type="tel" placeholder={child.placeholder || "(555) 000-0000"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
+                                        <input type="tel" placeholder={child.placeholder || "(555) 000-0000"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value.replace(/[^0-9]/g, "") })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
                                       </div>
                                     ) : child.fieldType === "WEBSITE" ? (
                                       <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
@@ -2747,24 +2802,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                 }
 
                 const handleNext = () => {
-                  // Run isRequired Validation checks
-                  if (q.isRequired) {
-                    let hasAnswer = false;
-                    const parentId = q.id || q.clientTempId;
-                    const children = questions.filter(item => item.parentId === parentId);
-                    if (children.length > 0) {
-                      const unansweredRequiredChildren = children.filter(c => !previewAnswers[c.labelKey]?.trim());
-                      hasAnswer = unansweredRequiredChildren.length === 0;
-                    } else if (["CHECKBOX"].includes(q.fieldType)) {
-                      hasAnswer = !!(previewAnswers[q.labelKey] && previewAnswers[q.labelKey].length > 0);
-                    } else {
-                      hasAnswer = !!previewAnswers[q.labelKey];
-                    }
-
-                    if (!hasAnswer) {
-                      toast.error(`Please answer the required question: "${q.label}" before proceeding.`);
-                      return;
-                    }
+                  if (!validatePreviewStep(q)) {
+                    return;
                   }
 
                   setPreviewStepIndex(previewStepIndex + 1);

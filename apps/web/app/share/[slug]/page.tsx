@@ -134,26 +134,59 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
   const validateStep = () => {
     if (!currentField) return true;
     if (isNonInteractive(currentField.fieldType)) return true;
-    if (!currentField.isRequired) return true;
 
-    const parentId = currentField.id;
-    const children = getChildFields(parentId);
+    const val = answers[currentField.id] || "";
+    const isEmailValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-    if (children.length > 0) {
-      const unanswered = children.filter(c => !answers[c.id]?.trim());
-      if (unanswered.length > 0) {
-        setValidationError(`Please fill in all required sub-fields.`);
+    if (currentField.isRequired) {
+      const parentId = currentField.id;
+      const children = getChildFields(parentId);
+
+      if (children.length > 0) {
+        const unanswered = children.filter(c => !answers[c.id]?.trim());
+        if (unanswered.length > 0) {
+          setValidationError(`Please fill in all required sub-fields.`);
+          return false;
+        }
+      } else if (["CHECKBOX"].includes(currentField.fieldType)) {
+        if (!answers[currentField.id] || JSON.parse(answers[currentField.id] || "[]").length === 0) {
+          setValidationError(`Please select at least one option.`);
+          return false;
+        }
+      } else if (!val.trim()) {
+        setValidationError(`This field is required.`);
         return false;
       }
-    } else if (["CHECKBOX"].includes(currentField.fieldType)) {
-      if (!answers[currentField.id] || JSON.parse(answers[currentField.id] || "[]").length === 0) {
-        setValidationError(`Please select at least one option.`);
-        return false;
-      }
-    } else if (!answers[currentField.id]?.trim()) {
-      setValidationError(`This field is required.`);
-      return false;
     }
+
+    // Format Validations for populated fields
+    if (val.trim()) {
+      if (currentField.fieldType === "EMAIL" && !isEmailValid(val)) {
+        setValidationError("Please enter a valid email address.");
+        return false;
+      }
+      if (currentField.fieldType === "PHONE" && val.length < 7) {
+        setValidationError("Please enter a valid phone number (at least 7 digits).");
+        return false;
+      }
+    }
+
+    // Child validations for contact cards and addresses
+    const children = getChildFields(currentField.id);
+    for (const child of children) {
+      const childVal = answers[child.id] || "";
+      if (childVal.trim()) {
+        if (child.fieldType === "EMAIL" && !isEmailValid(childVal)) {
+          setValidationError(`Please enter a valid email address for "${child.label}".`);
+          return false;
+        }
+        if (child.fieldType === "PHONE" && childVal.length < 7) {
+          setValidationError(`Please enter a valid phone number (at least 7 digits) for "${child.label}".`);
+          return false;
+        }
+      }
+    }
+
     return true;
   };
 
@@ -378,6 +411,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                   type="date"
                   value={answers[currentField.id] ?? ""}
                   onChange={e => setAnswer(currentField.id, e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
                   className="bg-neutral-900 border-2 border-neutral-700 focus:border-amber-400 text-white text-lg py-3 px-4 w-full focus-visible:outline-none transition-colors"
                 />
               )}
@@ -444,7 +478,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                   <input
                     type="tel"
                     value={answers[currentField.id] ?? ""}
-                    onChange={e => setAnswer(currentField.id, e.target.value)}
+                    onChange={e => setAnswer(currentField.id, e.target.value.replace(/[^0-9]/g, ""))}
                     placeholder={currentField.placeholder || "(555) 000-0000"}
                     className="bg-transparent text-white text-xl w-full focus-visible:outline-none placeholder:text-neutral-600"
                     autoFocus
@@ -622,7 +656,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                       ) : child.fieldType === "PHONE" ? (
                         <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
                           <PhoneIcon className="w-4 h-4 text-neutral-500 shrink-0" />
-                          <input type="tel" value={answers[child.id] ?? ""} onChange={e => setAnswer(child.id, e.target.value)} placeholder={child.placeholder || "(555) 000-0000"} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
+                          <input type="tel" value={answers[child.id] ?? ""} onChange={e => setAnswer(child.id, e.target.value.replace(/[^0-9]/g, ""))} placeholder={child.placeholder || "(555) 000-0000"} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
                         </div>
                       ) : child.fieldType === "WEBSITE" ? (
                         <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
