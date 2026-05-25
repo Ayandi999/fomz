@@ -54,7 +54,7 @@ export const getFormFieldsOutputModel = z.array(
       'LONG_TEXT','SHORT_TEXT','IMAGE','VIDEO','AUDIO','FILE',
       'MULTIPLE_CHOICE','YES_NO','CHECKBOX','DROPDOWN','SLIDER',
       'NUMBER','EMAIL','CONTACT_INFO','ADDRESS','PHONE','WEBSITE',
-      'RATING','DATE'
+      'RATING','DATE','WELCOME','THANK_YOU','INFO'
     ]).describe("Type of the field"),
     createdAt: z.date().nullable().optional(),
     updatedAt: z.date().nullable().optional(),
@@ -76,7 +76,7 @@ export const createFormFieldsInputModel = z.object({
         'LONG_TEXT','SHORT_TEXT','IMAGE','VIDEO','AUDIO','FILE',
         'MULTIPLE_CHOICE','YES_NO','CHECKBOX','DROPDOWN','SLIDER',
         'NUMBER','EMAIL','CONTACT_INFO','ADDRESS','PHONE','WEBSITE',
-        'RATING','DATE'
+        'RATING','DATE','WELCOME','THANK_YOU','INFO'
       ]).describe("Field type"),
       parentId: z.string().nullable().optional().describe("clientTempId of the parent field"),
     })
@@ -102,7 +102,7 @@ export const putFormFieldsInputModel = z.object({
         'LONG_TEXT','SHORT_TEXT','IMAGE','VIDEO','AUDIO','FILE',
         'MULTIPLE_CHOICE','YES_NO','CHECKBOX','DROPDOWN','SLIDER',
         'NUMBER','EMAIL','CONTACT_INFO','ADDRESS','PHONE','WEBSITE',
-        'RATING','DATE'
+        'RATING','DATE','WELCOME','THANK_YOU','INFO'
       ]).describe("Field type"),
       parentId: z.string().nullable().optional().describe("UUID of the parent field"),
     })

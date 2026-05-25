@@ -12,7 +12,7 @@ import {
    } from "drizzle-orm/pg-core";
 import {formsTable} from './form'
 
-export const filedTypeEnum = pgEnum('field_type_enum',['LONG_TEXT','SHORT_TEXT','IMAGE','VIDEO','AUDIO','FILE','MULTIPLE_CHOICE','YES_NO','CHECKBOX','DROPDOWN','SLIDER','NUMBER','EMAIL','CONTACT_INFO','ADDRESS','PHONE','WEBSITE','RATING','DATE']) 
+export const filedTypeEnum = pgEnum('field_type_enum',['LONG_TEXT','SHORT_TEXT','IMAGE','VIDEO','AUDIO','FILE','MULTIPLE_CHOICE','YES_NO','CHECKBOX','DROPDOWN','SLIDER','NUMBER','EMAIL','CONTACT_INFO','ADDRESS','PHONE','WEBSITE','RATING','DATE','WELCOME','THANK_YOU','INFO']) 
 export const formField = pgTable("forms_fields",{
      id:uuid("id").primaryKey().defaultRandom(),
 
