@@ -8,7 +8,7 @@ import {
   Sparkles, Type, AlignLeft, Hash, Mail, Calendar, ToggleLeft, Star,
   Image as ImageIcon, Video as VideoIcon, Mic as AudioIcon, FileText as FileIcon,
   List as ListIcon, ChevronDown, Sliders, User as UserIcon, MapPin as MapPinIcon,
-  Phone as PhoneIcon, Globe as GlobeIcon, Link as LinkIcon, Copy, ExternalLink, QrCode, ArrowRight, Check
+  Phone as PhoneIcon, Globe as GlobeIcon, Link as LinkIcon, Copy, ExternalLink, QrCode, ArrowRight, Check, Download
 } from "lucide-react";
 import { useUser } from "~/hooks/api/auth/useUser";
 import { useGetFormFields } from "~/hooks/api/forms/useGetFormFields";
@@ -17,7 +17,9 @@ import { usePutFormFields } from "~/hooks/api/forms/usePutFormFields";
 import { useDeleteFormField } from "~/hooks/api/forms/useDeleteFormField";
 import { usePublishForm } from "~/hooks/api/forms/usePublishForm";
 import { useUserForms } from "~/hooks/api/forms/useUserForms";
+import { useGetFormAnalytics } from "~/hooks/api/forms/useGetFormAnalytics";
 import { toast } from "sonner";
+import AnalyticsPanel from "./analytics";
 
 type FieldType =
   | "LONG_TEXT"
@@ -96,6 +98,59 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const [publishValidTill, setPublishValidTill] = useState<string>("");
   const [shareTab, setShareTab] = useState<"link" | "qr">("link");
   const [linkCopied, setLinkCopied] = useState<boolean>(false);
+  
+  const [activeTab, setActiveTab] = useState<"build" | "analytics">("build");
+  const [notificationEmailsInput, setNotificationEmailsInput] = useState<string>("");
+
+  // Fetch responses analytics
+  const { analytics, refetch: refetchAnalytics } = useGetFormAnalytics(formId);
+
+  useEffect(() => {
+    if (activeTab === "analytics") {
+      refetchAnalytics?.();
+    }
+  }, [activeTab]);
+
+  const handleDownloadCSV = () => {
+    if (!analytics?.submissionsList || analytics.submissionsList.length === 0) {
+      toast.error("No submission data available to download.");
+      return;
+    }
+
+    const submissions = analytics.submissionsList;
+    const questionKeys = questions.map(q => q.labelKey);
+    const questionLabels = questions.map(q => q.label || q.labelKey);
+    const headers = ["Submission ID", "Submitted At", ...questionLabels];
+
+    const rows = submissions.map((sub: any) => {
+      const subAnswers = sub.answers || {};
+      const answerValues = questionKeys.map(key => {
+        const val = subAnswers[key] || "";
+        const escaped = String(val).replace(/"/g, '""');
+        return `"${escaped}"`;
+      });
+      return [
+        `"${sub.id}"`,
+        `"${new Date(sub.createdAt).toLocaleString()}"`,
+        ...answerValues
+      ].join(",");
+    });
+
+    const csvContent = [
+      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","),
+      ...rows
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", url);
+    downloadAnchor.setAttribute("download", `form_${formId}_responses.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    toast.success("Responses CSV downloaded successfully!");
+  };
 
   const topLevelQuestions = questions.filter(q => !q.parentId);
   const activeQuestion = topLevelQuestions[activeIdx] || topLevelQuestions[0];
@@ -900,11 +955,17 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const handleTogglePublish = async () => {
     try {
       const nextPublishState = !publishStatus;
+      const parsedEmails = notificationEmailsInput
+        .split(",")
+        .map(e => e.trim())
+        .filter(Boolean);
+
       await publishFormAsync({
         formId,
         isPublished: nextPublishState,
         visibility: publishVisibility,
         validTill: publishValidTill ? new Date(publishValidTill) : null,
+        notificationEmails: parsedEmails,
       });
       setPublishStatus(nextPublishState);
       if (nextPublishState) {
@@ -946,38 +1007,74 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-4">
               {currentForm?.title || "Conversational Form Builder"}
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                if (questions.length === 0) {
-                  toast.error("Add at least one slide to preview the form.");
-                  return;
-                }
-                setIsPreviewOpen(true);
-                setPreviewStepIndex(0);
-                setPreviewAnswers({});
-              }}
-              className={`${buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
-            >
-              <Eye className="w-3.5 h-3.5 text-neutral-900 dark:text-neutral-100" /> Preview
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className={`${buttonPrimaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
-            >
-              <Save className="w-3.5 h-3.5" />
-              {isSaving ? "Saving…" : "Save Changes"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowPublishPanel(true)}
-              className={`${publishStatus ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              {publishStatus ? "Published" : "Publish"}
-            </button>
+            <div className="flex border-2 border-neutral-900 dark:border-neutral-100 bg-background h-9 rounded-none shrink-0 overflow-hidden mr-4">
+              <button
+                type="button"
+                onClick={() => setActiveTab("build")}
+                className={`px-4 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer border-none ${
+                  activeTab === "build"
+                    ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
+                    : "bg-transparent text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                }`}
+              >
+                Builder
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("analytics")}
+                className={`px-4 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer border-none ${
+                  activeTab === "analytics"
+                    ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
+                    : "bg-transparent text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                }`}
+              >
+                Analytics
+              </button>
+            </div>
+            {activeTab === "build" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (questions.length === 0) {
+                      toast.error("Add at least one slide to preview the form.");
+                      return;
+                    }
+                    setIsPreviewOpen(true);
+                    setPreviewStepIndex(0);
+                    setPreviewAnswers({});
+                  }}
+                  className={`${buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                >
+                  <Eye className="w-3.5 h-3.5 text-neutral-900 dark:text-neutral-100" /> Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className={`${buttonPrimaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {isSaving ? "Saving…" : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPublishPanel(true)}
+                  className={`${publishStatus ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {publishStatus ? "Published" : "Publish"}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDownloadCSV}
+                className={`${buttonPrimaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+              >
+                <Download className="w-3.5 h-3.5" /> Download Responses
+              </button>
+            )}
           </div>
         </nav>
 
@@ -1056,6 +1153,21 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   )}
                 </div>
 
+                {/* Expiration Digests Extra Recipients */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Digest Notification Emails (optional)</label>
+                  <input
+                    type="text"
+                    placeholder="extra1@example.com, extra2@example.com"
+                    value={notificationEmailsInput}
+                    onChange={e => setNotificationEmailsInput(e.target.value)}
+                    className={`${inputClass} text-xs`}
+                  />
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                    Separate multiple emails with commas. They will receive the compiled digest after the form expires.
+                  </p>
+                </div>
+
                 {/* Share link (only if published) */}
                 {publishStatus && shareUrl && (
                   <div className="border-t-2 border-neutral-200 dark:border-neutral-800 pt-4 flex flex-col gap-3">
@@ -1125,8 +1237,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
           </div>
         )}
 
-        {/* Builder Interface */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {activeTab === "analytics" ? (
+          <AnalyticsPanel formId={formId} questions={questions} analytics={analytics} />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* Left Column: Slides Map */}
           <div className="lg:col-span-2 flex flex-col gap-4">
@@ -2032,6 +2146,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
             )}
           </div>
         </div>
+        )}
 
         {/* Floating Add Content Modal Dialog */}
         {showAddContent && (

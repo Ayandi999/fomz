@@ -32,17 +32,50 @@ export async function getMailTransporter() {
 }
 
 export interface SendEmailPayload {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
 }
 
 export async function sendEmail({ to, subject, html }: SendEmailPayload) {
+  const resendKey = env.RESEND_API_KEY?.trim();
+
+  // If Resend API Key is provided, use Resend's REST API for delivery
+  if (resendKey) {
+    try {
+      console.log("Resend API Key found! Attempting delivery via Resend API...");
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${resendKey}`,
+        },
+        body: JSON.stringify({
+          from: "Form Builder <onboarding@resend.dev>",
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          html,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Email sent successfully via Resend API!", data);
+        return data;
+      } else {
+        const errText = await response.text();
+        console.error("Resend API returned an error, falling back to SMTP:", errText);
+      }
+    } catch (err) {
+      console.error("Failed to send email via Resend API, falling back to SMTP:", err);
+    }
+  }
+
   const mailTransporter = await getMailTransporter();
 
   const info = await mailTransporter.sendMail({
     from: '"Form Builder Team" <no-reply@formbuilder.com>',
-    to,
+    to: Array.isArray(to) ? to.join(", ") : to,
     subject,
     html,
   });

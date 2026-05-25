@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, boolean, timestamp, pgEnum, text } from "drizzle-orm/pg-core";
 import { usersTable } from './user'
 
 export const visibilityEnum = pgEnum('visibility_enum',['PUBLIC','PRIVATE','UNLISTED'])
@@ -16,4 +16,7 @@ export const formsTable = pgTable("forms", {
   validTill: timestamp('valid_till'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+
+  digestSent: boolean('digest_sent').default(false).notNull(),
+  notificationEmails: text('notification_emails').array(),
 });

@@ -19,6 +19,8 @@ import {
   getPublicFormBySlugOutputModel,
   submitFormResponseInputModel,
   submitFormResponseOutputModel,
+  getFormAnalyticsInputModel,
+  getFormAnalyticsOutputModel,
 } from "./model";
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { formService, userService } from "../../services";
@@ -195,7 +197,7 @@ export const formsRouter = router({
     .output(publishFormOutputModel)
     .mutation(async ({ input, ctx }) => {
       const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
-      const { formId, isPublished, visibility, validTill } = input;
+      const { formId, isPublished, visibility, validTill, notificationEmails } = input;
 
       const { success } = await formService.publishForm({
         formId,
@@ -203,6 +205,7 @@ export const formsRouter = router({
         isPublished,
         visibility,
         validTill,
+        notificationEmails,
       });
 
       return { success };
@@ -237,5 +240,21 @@ export const formsRouter = router({
       const { formId, answers } = input;
       const { success } = await formService.submitFormResponse({ formId, answers });
       return { success };
+    }),
+
+  getFormAnalytics: autheticatedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/getFormAnalytics",
+        tags: TAGS,
+      },
+    })
+    .input(getFormAnalyticsInputModel)
+    .output(getFormAnalyticsOutputModel)
+    .query(async ({ input, ctx }) => {
+      const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
+      const { formId } = input;
+      return await formService.getFormAnalytics({ formId, createdBy });
     }),
 });

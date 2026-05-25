@@ -10,11 +10,13 @@ import {
   type GetPublicFormBySlugInput,
   type SubmitFormResponseInput,
 } from "./model";
-import { db, and, eq, desc, inArray } from "@repo/database";
+import { db, and, eq, desc, inArray, lt, isNotNull } from "@repo/database";
 import { formsTable } from "@repo/database/models/form";
 import { formField } from "@repo/database/models/formFields";
 import { submissionsTable } from "@repo/database/models/submissions";
 import { answersTable } from "@repo/database/models/answers";
+import { usersTable } from "@repo/database/models/user";
+import { sendEmail } from "../clients/mail";
 
 class formService {
   public async createForm(payload: CreateFormInput) {
@@ -269,13 +271,14 @@ class formService {
   }
 
   public async publishForm(payload: PublishFormInput) {
-    const { formId, createdBy, isPublished, visibility, validTill } = payload;
+    const { formId, createdBy, isPublished, visibility, validTill, notificationEmails } = payload;
     const updated = await db
       .update(formsTable)
       .set({ 
         isPublished,
         ...(visibility !== undefined && { visibility }),
         ...(validTill !== undefined && { validTill }),
+        ...(notificationEmails !== undefined && { notificationEmails }),
         updatedAt: new Date(),
       })
       .where(and(eq(formsTable.formId, formId), eq(formsTable.createdBy, createdBy)))
@@ -399,6 +402,321 @@ class formService {
     });
 
     return { success: true };
+  }
+
+  public async getFormAnalytics(payload: { formId: string; createdBy: string }) {
+    const { formId, createdBy } = payload;
+
+    // 1. Verify the form exists and belongs to the user
+    const forms = await db
+      .select({ formId: formsTable.formId })
+      .from(formsTable)
+      .where(and(eq(formsTable.formId, formId), eq(formsTable.createdBy, createdBy)));
+
+    if (!forms || forms.length === 0) {
+      throw new Error("Form not found or you do not have permission to view its analytics");
+    }
+
+    // 2. Fetch all submissions
+    const submissions = await db
+      .select({
+        id: submissionsTable.id,
+        createdAt: submissionsTable.createdAt,
+      })
+      .from(submissionsTable)
+      .where(eq(submissionsTable.formId, formId))
+      .orderBy(desc(submissionsTable.createdAt));
+
+    // 3. Fetch all questions
+    const fields = await db
+      .select({
+        id: formField.id,
+        label: formField.label,
+        labelKey: formField.labelKey,
+        fieldType: formField.fieldType,
+        placeholder: formField.placeholder,
+        parentId: formField.parentId,
+      })
+      .from(formField)
+      .where(eq(formField.formId, formId))
+      .orderBy(formField.index);
+
+    if (submissions.length === 0) {
+      return {
+        totalSubmissions: 0,
+        completionRate: 0,
+        submissionsOverTime: [],
+        aggregations: {},
+        submissionsList: [],
+      };
+    }
+
+    const submissionIds = submissions.map(s => s.id);
+
+    // 4. Fetch all answers for these submissions
+    const answers = await db
+      .select({
+        id: answersTable.id,
+        submissionId: answersTable.submissionId,
+        fieldId: answersTable.fieldId,
+        value: answersTable.value,
+      })
+      .from(answersTable)
+      .where(inArray(answersTable.submissionId, submissionIds));
+
+    // Group answers by fieldId
+    const answersByField: Record<string, typeof answers> = {};
+    for (const ans of answers) {
+      if (!answersByField[ans.fieldId]) {
+        answersByField[ans.fieldId] = [];
+      }
+      const groupArr = answersByField[ans.fieldId];
+      if (groupArr) {
+        groupArr.push(ans);
+      }
+    }
+
+    // Calculate submissions over time
+    const trendMap: Record<string, number> = {};
+    for (const sub of submissions) {
+      if (sub.createdAt) {
+        const dateStr = new Date(sub.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        trendMap[dateStr] = (trendMap[dateStr] || 0) + 1;
+      }
+    }
+    const submissionsOverTime = Object.entries(trendMap)
+      .map(([date, count]) => ({ date, count }))
+      .reverse();
+
+    // Calculate aggregations for each question
+    const aggregations: Record<string, any> = {};
+    for (const field of fields) {
+      const fieldAnswers = answersByField[field.id] || [];
+      const values = fieldAnswers.map(a => (a.value || "").trim()).filter(Boolean);
+
+      if (["MULTIPLE_CHOICE", "DROPDOWN", "YES_NO", "CHECKBOX"].includes(field.fieldType)) {
+        const distribution: Record<string, number> = {};
+        for (const val of values) {
+          if (field.fieldType === "CHECKBOX") {
+            try {
+              const parsed = JSON.parse(val);
+              if (Array.isArray(parsed)) {
+                for (const item of parsed) {
+                  distribution[item] = (distribution[item] || 0) + 1;
+                }
+                continue;
+              }
+            } catch {}
+          }
+          distribution[val] = (distribution[val] || 0) + 1;
+        }
+
+        const totalVotes = Object.values(distribution).reduce((a, b) => a + b, 0);
+        aggregations[field.id] = {
+          fieldType: field.fieldType,
+          label: field.label,
+          totalResponses: values.length,
+          distribution: Object.entries(distribution).map(([choice, count]) => ({
+            choice,
+            count,
+            percentage: totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0,
+          })),
+        };
+      } else if (["SLIDER", "RATING"].includes(field.fieldType)) {
+        const nums = values.map(Number).filter(n => !isNaN(n));
+        const avg = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+        const min = nums.length > 0 ? Math.min(...nums) : 0;
+        const max = nums.length > 0 ? Math.max(...nums) : 0;
+
+        const ratingDist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        if (field.fieldType === "RATING") {
+          for (const n of nums) {
+            if (n >= 1 && n <= 5) {
+              ratingDist[n] = (ratingDist[n] || 0) + 1;
+            }
+          }
+        }
+
+        aggregations[field.id] = {
+          fieldType: field.fieldType,
+          label: field.label,
+          totalResponses: nums.length,
+          average: Math.round(avg * 10) / 10,
+          min,
+          max,
+          distribution: Object.entries(ratingDist).map(([rating, count]) => ({
+            rating: Number(rating),
+            count,
+          })),
+        };
+      } else {
+        aggregations[field.id] = {
+          fieldType: field.fieldType,
+          label: field.label,
+          totalResponses: values.length,
+          recentAnswers: values.slice(0, 15),
+        };
+      }
+    }
+
+    // Format individual responses table ("who responded with what")
+    const submissionsList = submissions.map(sub => {
+      const subAnswers: Record<string, string> = {};
+      for (const field of fields) {
+        const matched = answers.find(a => a.submissionId === sub.id && a.fieldId === field.id);
+        subAnswers[field.labelKey] = matched?.value || "";
+      }
+      return {
+        id: sub.id,
+        createdAt: sub.createdAt,
+        answers: subAnswers,
+      };
+    });
+
+    return {
+      totalSubmissions: submissions.length,
+      completionRate: 100, // standard complete responses in conversational deck layouts
+      submissionsOverTime,
+      aggregations,
+      submissionsList,
+    };
+  }
+
+  public async checkAndSendExpiredFormDigests() {
+    try {
+      // 1. Fetch expired, published forms that haven't sent a digest yet
+      const expiredForms = await db
+        .select({
+          formId: formsTable.formId,
+          title: formsTable.title,
+          createdBy: formsTable.createdBy,
+          notificationEmails: formsTable.notificationEmails,
+        })
+        .from(formsTable)
+        .where(
+          and(
+            eq(formsTable.isPublished, true),
+            eq(formsTable.digestSent, false),
+            isNotNull(formsTable.validTill),
+            lt(formsTable.validTill, new Date())
+          )
+        );
+
+      if (expiredForms.length === 0) return;
+
+      console.log(`Found ${expiredForms.length} expired forms requiring email digests.`);
+
+      for (const form of expiredForms) {
+        if (!form.createdBy) continue;
+        // Fetch creator's email address
+        const creators = await db
+          .select({ email: usersTable.email })
+          .from(usersTable)
+          .where(eq(usersTable.id, form.createdBy));
+
+        if (creators.length === 0) {
+          console.warn(`Creator not found for form ${form.formId}`);
+          continue;
+        }
+
+        const creatorEmail = creators[0]!.email;
+
+        // Fetch aggregate response statistics for this form
+        const analytics = await this.getFormAnalytics({
+          formId: form.formId,
+          createdBy: form.createdBy,
+        });
+
+        // Unique dynamic link to analysis dashboard tab
+        const analysisUrl = `http://localhost:3000/dashboard/edit/${form.formId}?tab=analytics`;
+
+        // Format HTML Email Digest with standard inline retro-aesthetic layout
+        const extraRecipients = form.notificationEmails || [];
+        const recipientsList = [creatorEmail, ...extraRecipients];
+
+        // Let's build a clean visual summary of MCQs, Ratings, etc.
+        let summaryHtml = "";
+        const aggregations = Object.values(analytics.aggregations);
+        if (aggregations.length > 0) {
+          summaryHtml = `
+            <h3 style="color: #171717; font-size: 15px; text-transform: uppercase; font-weight: bold; margin-top: 25px; border-bottom: 2px solid #e5e5e5; padding-bottom: 5px;">Key Response Summaries</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
+          `;
+          for (const agg of aggregations as any[]) {
+            summaryHtml += `
+              <tr style="border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px 0; font-weight: bold; color: #171717;">${agg.label}</td>
+                <td style="padding: 10px 0; text-align: right; color: #404040;">
+            `;
+            if (["MULTIPLE_CHOICE", "DROPDOWN", "YES_NO", "CHECKBOX"].includes(agg.fieldType)) {
+              summaryHtml += (agg.distribution || []).map((d: any) => `${d.choice}: <strong>${d.count} (${d.percentage}%)</strong>`).join("<br />");
+            } else if (["SLIDER", "RATING"].includes(agg.fieldType)) {
+              summaryHtml += `Avg: <strong>${agg.average}</strong> (Min: ${agg.min}, Max: ${agg.max})`;
+            } else {
+              summaryHtml += `<strong>${agg.totalResponses} responses</strong>`;
+            }
+            summaryHtml += `
+                </td>
+              </tr>
+            `;
+          }
+          summaryHtml += `</table>`;
+        }
+
+        const emailHtml = `
+          <div style="font-family: sans-serif; padding: 30px; max-width: 600px; margin: auto; border: 2px solid #171717; background-color: #ffffff; color: #171717;">
+            <h2 style="text-transform: uppercase; letter-spacing: 1px; border-bottom: 3px solid #171717; padding-bottom: 15px; margin-top: 0; font-size: 22px; font-weight: 800;">
+              Form Finished & Expiry Report
+            </h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #404040;">
+              Your conversational form <strong>"${form.title}"</strong> has finished accepting responses according to its scheduled expiration.
+            </p>
+
+            <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #171717;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <tr>
+                  <td style="padding: 4px 0; color: #737373;">Total Responses:</td>
+                  <td style="padding: 4px 0; font-weight: bold; text-align: right;">${analytics.totalSubmissions}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 4px 0; color: #737373;">Completion Rate:</td>
+                  <td style="padding: 4px 0; font-weight: bold; text-align: right;">${analytics.completionRate}%</td>
+                </tr>
+              </table>
+            </div>
+
+            ${summaryHtml}
+
+            <div style="margin: 35px 0; text-align: center;">
+              <a href="${analysisUrl}" style="display: inline-block; padding: 12px 30px; background-color: #171717; color: #ffffff; text-decoration: none; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; border: 2px solid #171717;">
+                View Complete Analytics & Submissions
+              </a>
+            </div>
+
+            <p style="font-size: 11px; color: #737373; margin-top: 30px; border-top: 1px solid #e5e5e5; padding-top: 15px;">
+              This summary is sent automatically upon form expiration. Extra recipients notified: ${extraRecipients.length > 0 ? extraRecipients.join(", ") : "none"}.
+            </p>
+          </div>
+        `;
+
+        // Dispatch Email using Ethereal/Resend sender
+        await sendEmail({
+          to: recipientsList,
+          subject: `Form Completed Digest: "${form.title}"`,
+          html: emailHtml,
+        });
+
+        // Update form status in DB
+        await db
+          .update(formsTable)
+          .set({ digestSent: true })
+          .where(eq(formsTable.formId, form.formId));
+
+        console.log(`Expired digest sent successfully for form ${form.formId}`);
+      }
+    } catch (error) {
+      console.error("Error checking or sending expired form digests:", error);
+    }
   }
 }
 

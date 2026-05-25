@@ -7,7 +7,8 @@ const envSchema = z.object({
   GOOGLE_OAUTH_REDIRECT_URI: z.string().describe("google oauth redirect uri"),
   REDIS_URL: z.string().describe("redis url"),
   SMTP_USER: z.string().optional().describe("Ethereal SMTP user"),
-  SMTP_PASS: z.string().optional().describe("Ethereal SMTP password")
+  SMTP_PASS: z.string().optional().describe("Ethereal SMTP password"),
+  RESEND_API_KEY: z.string().optional().describe("Resend email delivery API key"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

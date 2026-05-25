@@ -127,11 +127,18 @@ export const publishFormInputModel = z.object({
   isPublished: z.boolean().describe("Publish state"),
   visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).optional().describe("Visibility level"),
   validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
+  notificationEmails: z.array(z.string()).optional().describe("Additional recipient emails"),
 });
 
 export const publishFormOutputModel = z.object({
   success: z.boolean().describe("Whether form publish state was updated successfully"),
 });
+
+export const getFormAnalyticsInputModel = z.object({
+  formId: z.string().uuid().describe("Id of the form"),
+});
+
+export const getFormAnalyticsOutputModel = z.any().describe("Comprehensive aggregated form responses metrics and analytics payload");
 
 // Public endpoint schemas — only what is needed to render UI and store a response
 const publicFieldModel = z.object({
