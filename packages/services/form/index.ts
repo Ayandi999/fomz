@@ -17,6 +17,7 @@ import { submissionsTable } from "@repo/database/models/submissions";
 import { answersTable } from "@repo/database/models/answers";
 import { usersTable } from "@repo/database/models/user";
 import { sendEmail } from "../clients/mail";
+import { cloudinary } from "../clients/cloudinary";
 
 class formService {
   public async createForm(payload: CreateFormInput) {
@@ -52,6 +53,76 @@ class formService {
   public async deleteForm(payload: DeleteFormInput) {
     const { formId, createdBy } = await deleteFormInput.parseAsync(payload);
 
+    // 1. Verify the form exists and belongs to the user
+    const form = await db
+      .select({ formId: formsTable.formId })
+      .from(formsTable)
+      .where(and(eq(formsTable.formId, formId), eq(formsTable.createdBy, createdBy)));
+
+    if (!form || form.length === 0) {
+      throw new Error("Form not found or you do not have permission to delete it");
+    }
+
+    // 2. Fetch all submissions associated with the form
+    const submissions = await db
+      .select({ id: submissionsTable.id })
+      .from(submissionsTable)
+      .where(eq(submissionsTable.formId, formId));
+
+    if (submissions.length > 0) {
+      const submissionIds = submissions.map(s => s.id);
+
+      // 3. Fetch all answer entries
+      const answers = await db
+        .select({ value: answersTable.value })
+        .from(answersTable)
+        .where(inArray(answersTable.submissionId, submissionIds));
+
+      // 4. Extract secure Cloudinary URL resources from answers
+      const cloudinaryUrls = answers
+        .map(a => a.value)
+        .filter((val): val is string => 
+          typeof val === "string" && 
+          val.includes("res.cloudinary.com")
+        );
+
+      if (cloudinaryUrls.length > 0) {
+        // Extract publicIds from Cloudinary URLs:
+        // Format: https://res.cloudinary.com/cloud_name/[image|video]/upload/v123456/folder/public_id.ext
+        const publicIds = cloudinaryUrls.map(url => {
+          try {
+            const parts = url.split("/upload/");
+            if (parts.length < 2) return null;
+            const pathParts = parts[1]!.split("/");
+            // Remove version tag if present (starts with 'v' followed by numbers)
+            if (pathParts[0]?.startsWith("v") && !isNaN(Number(pathParts[0].substring(1)))) {
+              pathParts.shift();
+            }
+            const pathWithExtension = pathParts.join("/");
+            // Remove file extension at the end
+            const lastDotIndex = pathWithExtension.lastIndexOf(".");
+            return lastDotIndex !== -1 ? pathWithExtension.substring(0, lastDotIndex) : pathWithExtension;
+          } catch (e) {
+            return null;
+          }
+        }).filter((id): id is string => typeof id === "string");
+
+        // 5. Delete Cloudinary resources in batches (Images, Videos, Audios, PDFs)
+        for (const publicId of publicIds) {
+          try {
+            // Check if resource is a video or audio to use appropriate resource_type
+            const isVideoOrAudio = publicId.includes("video") || publicId.includes("audio");
+            await cloudinary.uploader.destroy(publicId, {
+              resource_type: isVideoOrAudio ? "video" : "image"
+            });
+          } catch (err) {
+            console.error(`Failed to delete Cloudinary resource: ${publicId}`, err);
+          }
+        }
+      }
+    }
+
+    // 6. Delete the form from database (Cascade will automatically delete formFields, submissions, and answers)
     const deleted = await db
       .delete(formsTable)
       .where(

@@ -27,9 +27,11 @@
     "@scalar/express-api-reference": "^0.8.30",
     "@trpc/server": "^11.8.1",
     "@types/cookie-parser": "^1.4.10",
+    "@types/multer": "^2.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.2.1",
+    "multer": "^2.1.1",
     "trpc-to-openapi": "^3.1.0",
     "zod": "^4.3.5"
   }

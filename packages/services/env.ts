@@ -9,6 +9,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional().describe("Ethereal SMTP user"),
   SMTP_PASS: z.string().optional().describe("Ethereal SMTP password"),
   RESEND_API_KEY: z.string().optional().describe("Resend email delivery API key"),
+  CLOUDINARY_URL: z.string().describe("Cloudinary connection URL"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

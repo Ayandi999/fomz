@@ -1898,7 +1898,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-md">
                             <VideoIcon className="w-8 h-8 text-neutral-400" />
                             <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Video Attachment</span>
-                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports MP4, WebM up to 50MB</span>
+                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports MP4, WebM up to 10MB</span>
                           </div>
                         )}
 
@@ -1906,8 +1906,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                         {activeQuestion.fieldType === "AUDIO" && (
                           <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-md">
                             <AudioIcon className="w-8 h-8 text-neutral-400" />
-                            <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Sound / Audio</span>
-                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports MP3, WAV files</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Record Live or Upload sound</span>
+                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports MP3, WAV, WebM up to 10MB</span>
                           </div>
                         )}
 
@@ -1916,7 +1916,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-md">
                             <FileIcon className="w-8 h-8 text-neutral-400" />
                             <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Document attachment</span>
-                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports PDF, CSV, DOCX files</span>
+                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports PDF up to 200KB</span>
                           </div>
                         )}
 
@@ -2813,70 +2813,111 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
                             <ImageIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
                             <span className="text-base font-black uppercase tracking-widest text-white">Upload Image File</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider -mt-3">Limit: 300KB max</span>
                             <input 
                               type="file" 
                               accept="image/*"
-                              onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.files?.[0]?.name || "" })}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 300 * 1024) {
+                                  toast.error("File size validation failed: Images must be 300KB max.");
+                                  return;
+                                }
+                                setPreviewAnswers({ ...previewAnswers, [q.labelKey]: file.name });
+                                toast.success(`Simulated Attachment: ${file.name}`);
+                              }}
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-450 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
                           </div>
                         )}
-
+ 
                         {/* 17. VIDEO */}
                         {q.fieldType === "VIDEO" && (
                           <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
                             <VideoIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
                             <span className="text-base font-black uppercase tracking-widest text-white">Upload Video Attachment</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider -mt-3">Limit: 10MB max</span>
                             <input 
                               type="file" 
                               accept="video/*"
-                              onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.files?.[0]?.name || "" })}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 10 * 1024 * 1024) {
+                                  toast.error("File size validation failed: Videos must be 10MB max.");
+                                  return;
+                                }
+                                setPreviewAnswers({ ...previewAnswers, [q.labelKey]: file.name });
+                                toast.success(`Simulated Attachment: ${file.name}`);
+                              }}
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-450 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
                           </div>
                         )}
-
+ 
                         {/* 18. AUDIO */}
                         {q.fieldType === "AUDIO" && (
                           <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
                             <AudioIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
-                            <span className="text-base font-black uppercase tracking-widest text-white">Upload Sound / Audio</span>
+                            <span className="text-base font-black uppercase tracking-widest text-white">Record Live or Upload sound</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider -mt-3">Limit: 10MB max (MP3, WAV, WebM)</span>
                             <input 
                               type="file" 
                               accept="audio/*"
-                              onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.files?.[0]?.name || "" })}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 10 * 1024 * 1024) {
+                                  toast.error("File size validation failed: Audio files must be 10MB max.");
+                                  return;
+                                }
+                                setPreviewAnswers({ ...previewAnswers, [q.labelKey]: file.name });
+                                toast.success(`Simulated Attachment: ${file.name}`);
+                              }}
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-450 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
                           </div>
                         )}
-
+ 
                         {/* 19. FILE */}
                         {q.fieldType === "FILE" && (
                           <div className="border-2 border-dashed border-neutral-800 p-16 flex flex-col items-center justify-center gap-6 bg-neutral-900/20 max-w-xl w-full">
                             <FileIcon className="w-16 h-16 text-neutral-600 animate-pulse" />
                             <span className="text-base font-black uppercase tracking-widest text-white">Upload Document attachment</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider -mt-3">Limit: 200KB max (PDF)</span>
                             <input 
                               type="file" 
-                              onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.files?.[0]?.name || "" })}
+                              accept=".pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 200 * 1024) {
+                                  toast.error("File size validation failed: PDF documents must be 200KB max.");
+                                  return;
+                                }
+                                setPreviewAnswers({ ...previewAnswers, [q.labelKey]: file.name });
+                                toast.success(`Simulated Attachment: ${file.name}`);
+                              }}
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-455 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}

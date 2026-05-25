@@ -38,6 +38,9 @@ app.get("/", (req, res) => {
 import UserService from "@repo/services/user";
 const userService = new UserService();
 
+import uploadRouter from "./routes/upload";
+app.use("/api", uploadRouter);
+
 app.get("/health", (req, res) => {
   return res.json({ message: "Streamyst server is healthy", healthy: true });
 });

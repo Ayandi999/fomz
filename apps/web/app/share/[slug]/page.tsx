@@ -6,8 +6,10 @@ import { useSubmitFormResponse } from "~/hooks/api/forms/useSubmitFormResponse";
 import { 
   ChevronDown, ChevronRight, Globe as GlobeIcon, Phone as PhoneIcon, 
   Mail, Star, ToggleLeft, CheckSquare, AlignLeft, Type, Hash, Calendar,
-  ArrowRight, ArrowLeft, Check, Loader2
+  ArrowRight, ArrowLeft, Check, Loader2, Upload, Music, Play, Square,
+  RefreshCw, AlertCircle, FileText, Image as ImageIcon, Video as VideoIcon
 } from "lucide-react";
+import { toast } from "sonner";
 
 type FieldType =
   | "LONG_TEXT" | "SHORT_TEXT" | "IMAGE" | "VIDEO" | "AUDIO" | "FILE"
@@ -70,6 +72,15 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
   const [phoneSearch, setPhoneSearch] = useState("");
   const [phoneDropdownOpen, setPhoneDropdownOpen] = useState(false);
   const [countryCodes, setCountryCodes] = useState(COUNTRY_CODES_FALLBACK);
+
+  // File uploading and Audio media recorder states
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recorder, setRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
+
 
   const topLevelFields = (fields || []).filter((f: PublicField) => !f.parentId);
   const currentField = topLevelFields[stepIndex];
@@ -191,6 +202,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
   };
 
   const handleNext = () => {
+    if (isUploading) {
+      setValidationError("Please wait until your file upload completes.");
+      return;
+    }
     if (!validateStep()) return;
     setValidationError("");
     if (isLastStep) {
@@ -671,6 +686,274 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                   ))}
                 </div>
               )}
+
+              {/* Media Upload & Active Capture Types (IMAGE, VIDEO, FILE, AUDIO) */}
+              {["IMAGE", "VIDEO", "FILE", "AUDIO"].includes(currentField.fieldType) && (() => {
+                const handleFileUpload = async (selectedFile: File) => {
+                  // Size Caps matching backend
+                  const FOLDERS = { IMAGE: "IMAGE", VIDEO: "VIDEO", FILE: "PDF", AUDIO: "AUDIO" };
+                  const LIMITS = {
+                    IMAGE: 300 * 1024,      // 300 KB
+                    FILE: 200 * 1024,       // 200 KB
+                    VIDEO: 10 * 1024 * 1024, // 10 MB
+                    AUDIO: 10 * 1024 * 1024, // 10 MB
+                  };
+
+                  const fieldTypeKey = currentField.fieldType === "FILE" ? "FILE" : currentField.fieldType as keyof typeof LIMITS;
+                  const limit = LIMITS[fieldTypeKey];
+                  
+                  if (selectedFile.size > limit) {
+                    const displaySize = limit >= 1024 * 1024 
+                      ? `${limit / (1024 * 1024)}MB` 
+                      : `${limit / 1024}KB`;
+                    toast.error(`Frontend validation: File size exceeds ${displaySize} constraint for type ${currentField.fieldType}.`);
+                    return;
+                  }
+
+                  setIsUploading(true);
+                  setUploadProgress("Uploading file to Cloudinary...");
+                  try {
+                    const formData = new FormData();
+                    formData.append("file", selectedFile);
+                    formData.append("type", FOLDERS[currentField.fieldType as keyof typeof FOLDERS]);
+
+                    const response = await fetch("http://localhost:8000/api/upload", {
+                      method: "POST",
+                      body: formData,
+                    });
+
+                    const resData = await response.json();
+                    if (!response.ok) {
+                      throw new Error(resData.error || "Upload failed");
+                    }
+
+                    setAnswer(currentField.id, resData.url);
+                    toast.success("File uploaded and saved successfully!");
+                  } catch (err: any) {
+                    toast.error(err.message || "Something went wrong during file upload.");
+                  } finally {
+                    setIsUploading(false);
+                    setUploadProgress("");
+                  }
+                };
+
+                const startRecording = async () => {
+                  try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const options = { mimeType: "audio/webm" };
+                    const newRecorder = new MediaRecorder(stream, options);
+                    
+                    const chunks: Blob[] = [];
+                    newRecorder.ondataavailable = (e) => {
+                      if (e.data.size > 0) chunks.push(e.data);
+                    };
+
+                    newRecorder.onstop = () => {
+                      const audioBlob = new Blob(chunks, { type: "audio/webm" });
+                      const audioUrl = URL.createObjectURL(audioBlob);
+                      setAudioPreviewUrl(audioUrl);
+                      setAudioChunks(chunks);
+                    };
+
+                    newRecorder.start();
+                    setRecorder(newRecorder);
+                    setIsRecording(true);
+                    toast.info("Microphone recording started...");
+                  } catch (err: any) {
+                    toast.error("Failed to access microphone. Please check your browser permissions.");
+                  }
+                };
+
+                const stopRecording = () => {
+                  if (recorder && isRecording) {
+                    recorder.stop();
+                    // Stop all audio stream tracks
+                    recorder.stream.getTracks().forEach(track => track.stop());
+                    setIsRecording(false);
+                    toast.success("Recording complete. You can preview or upload now.");
+                  }
+                };
+
+                const uploadRecordedAudio = async () => {
+                  if (audioChunks.length === 0) return;
+                  const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+                  const audioFile = new File([audioBlob], `recording_${Date.now()}.webm`, { type: "audio/webm" });
+                  await handleFileUpload(audioFile);
+                };
+
+                const resetAudioRecord = () => {
+                  setAudioPreviewUrl(null);
+                  setAudioChunks([]);
+                  setRecorder(null);
+                };
+
+                const currentUrl = answers[currentField.id];
+
+                return (
+                  <div className="flex flex-col gap-6 mt-2 max-w-lg w-full">
+                    {/* Size and specs warning banners */}
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-neutral-500 bg-neutral-900/60 p-3 border border-neutral-800">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
+                      {currentField.fieldType === "IMAGE" && "Images must be 300KB max (JPEG, PNG)."}
+                      {currentField.fieldType === "VIDEO" && "Videos must be 10MB max (MP4, WebM)."}
+                      {currentField.fieldType === "FILE" && "Documents must be 200KB max (PDF)."}
+                      {currentField.fieldType === "AUDIO" && "Audio clips must be 10MB max (MP3, WAV, WEBM)."}
+                    </div>
+
+                    {/* Standard File Upload Component */}
+                    {currentField.fieldType !== "AUDIO" ? (
+                      <div className="flex flex-col gap-4">
+                        <label className="border-2 border-dashed border-neutral-700 hover:border-amber-400 p-8 flex flex-col items-center justify-center gap-3 bg-neutral-900/30 transition-colors cursor-pointer text-center select-none group">
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept={
+                              currentField.fieldType === "IMAGE" ? "image/*" :
+                              currentField.fieldType === "VIDEO" ? "video/*" :
+                              ".pdf"
+                            }
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleFileUpload(file);
+                            }}
+                            disabled={isUploading}
+                          />
+                          {currentField.fieldType === "IMAGE" && <ImageIcon className="w-8 h-8 text-neutral-500 group-hover:text-amber-400 transition-colors shrink-0" />}
+                          {currentField.fieldType === "VIDEO" && <VideoIcon className="w-8 h-8 text-neutral-500 group-hover:text-amber-400 transition-colors shrink-0" />}
+                          {currentField.fieldType === "FILE" && <FileText className="w-8 h-8 text-neutral-500 group-hover:text-amber-400 transition-colors shrink-0" />}
+                          
+                          <span className="text-xs font-black uppercase tracking-widest text-neutral-300 group-hover:text-white transition-colors">
+                            {isUploading ? "Uploading..." : `Select ${currentField.fieldType}`}
+                          </span>
+                          <span className="text-[10px] text-neutral-500 uppercase tracking-wider">Click to browse your local device files</span>
+                        </label>
+                      </div>
+                    ) : (
+                      /* Audio Voice Recorder + File Selector Deck */
+                      <div className="flex flex-col gap-6 border-2 border-neutral-800 p-5 bg-neutral-900/10">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500 border-b border-neutral-800 pb-2">Voice Input & Upload Options</h4>
+                        
+                        {/* Audio File Selection Input Alternative */}
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-neutral-400">Option 1: Upload Audio File</span>
+                          <label className="border border-neutral-700 hover:border-amber-400 p-3 flex items-center justify-center gap-2 cursor-pointer transition-colors bg-neutral-900/50">
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="audio/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleFileUpload(file);
+                              }}
+                              disabled={isUploading}
+                            />
+                            <Upload className="w-4 h-4 text-neutral-500" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white">Choose MP3 or WAV File</span>
+                          </label>
+                        </div>
+
+                        <div className="relative flex py-2 items-center justify-center">
+                          <div className="flex-grow border-t border-neutral-800"></div>
+                          <span className="flex-shrink mx-4 text-[9px] font-black uppercase tracking-widest text-neutral-600">Or</span>
+                          <div className="flex-grow border-t border-neutral-800"></div>
+                        </div>
+
+                        {/* Microphone capture controller */}
+                        <div className="flex flex-col gap-3">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-neutral-400">Option 2: Record Live Audio Clip</span>
+                          
+                          {!audioPreviewUrl ? (
+                            <div className="flex gap-2">
+                              {!isRecording ? (
+                                <button
+                                  type="button"
+                                  onClick={startRecording}
+                                  disabled={isUploading}
+                                  className="w-full flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-black uppercase tracking-widest text-[10px] py-3 transition-colors"
+                                >
+                                  <Music className="w-4 h-4 shrink-0" /> Start Recording
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={stopRecording}
+                                  className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest text-[10px] py-3 transition-colors"
+                                >
+                                  <Square className="w-4 h-4 shrink-0 animate-pulse" /> Stop Recording
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            /* Voice Preview player & selector deck */
+                            <div className="flex flex-col gap-3 border border-neutral-800 p-3 bg-neutral-950/50">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5" /> Recording Saved in Cache
+                              </span>
+                              <audio src={audioPreviewUrl} controls className="w-full h-8" />
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={uploadRecordedAudio}
+                                  disabled={isUploading}
+                                  className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-black uppercase tracking-widest text-[9px] py-2 transition-colors"
+                                >
+                                  <Upload className="w-3.5 h-3.5" /> Upload Recording
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={resetAudioRecord}
+                                  disabled={isUploading}
+                                  className="flex-1 flex items-center justify-center gap-1.5 border border-neutral-700 text-neutral-400 hover:text-white font-black uppercase tracking-widest text-[9px] py-2 transition-colors"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" /> Re-record
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Progress loaders */}
+                    {isUploading && (
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-neutral-400 bg-neutral-900 p-3 border border-neutral-800">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
+                        {uploadProgress}
+                      </div>
+                    )}
+
+                    {/* Dynamic Cloudinary URL success previews */}
+                    {currentUrl && (
+                      <div className="border border-neutral-800 p-4 bg-neutral-900/50 flex flex-col gap-3">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1.5 border-b border-neutral-800 pb-2">
+                          <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Successfully Uploaded
+                        </span>
+                        
+                        {currentField.fieldType === "IMAGE" && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={currentUrl} alt="Image upload thumbnail preview" className="w-full max-h-36 object-contain border border-neutral-800 bg-neutral-950" />
+                        )}
+
+                        {currentField.fieldType === "VIDEO" && (
+                          <video src={currentUrl} controls className="w-full max-h-36 object-contain border border-neutral-800 bg-neutral-950" />
+                        )}
+
+                        {(currentField.fieldType === "AUDIO" || currentUrl.endsWith(".webm") || currentUrl.endsWith(".mp3") || currentUrl.endsWith(".wav")) && (
+                          <audio src={currentUrl} controls className="w-full" />
+                        )}
+
+                        {currentField.fieldType === "FILE" && (
+                          <div className="flex items-center justify-between gap-4 p-2 bg-neutral-950 border border-neutral-800">
+                            <span className="text-[10px] font-black uppercase tracking-wide truncate max-w-[200px]">{currentUrl}</span>
+                            <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] font-black uppercase tracking-widest border border-neutral-700 px-2 py-1 hover:border-white transition-colors shrink-0 text-white select-none">Open File</a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
             </>
           )}
 
