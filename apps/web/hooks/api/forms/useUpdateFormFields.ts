@@ -8,8 +8,8 @@ export const useUpdateFormFields = () => {
     error,
     isPending,
     isSuccess,
-  } = trpc.forms.updateFormFields.useMutation({
-    onSuccess: async (_, variables) => {
+  } = trpc.forms.putFormFields.useMutation({
+    onSuccess: async (_, variables: { formId: string }) => {
       await utils.forms.getFormFields.invalidate({ formId: variables.formId });
     },
   });

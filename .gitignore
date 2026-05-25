@@ -36,3 +36,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local blueprints
+miyazaki_theme_concept.md
+sekiro_slash_animation.md

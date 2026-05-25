@@ -13,7 +13,7 @@ const defaultCookieOption: CookieOptions = {
      path:'/',
      httpOnly:true,
      secure: process.env.NODE_ENV === "production",
-     sameSite:"strict",
+     sameSite:"lax",
      maxAge: ONE_YEAR,
 }
 //------------------------------------------------------
@@ -51,7 +51,7 @@ export function setAuthenticationCookie(ctx:TRPCContext, accessToken:string, ref
           path: '/',
           httpOnly: true,
           secure: isProd,
-          sameSite: "strict",
+          sameSite: "lax",
           maxAge: 15 * 60 * 1000, // 15 minutes
      });
 
@@ -61,7 +61,7 @@ export function setAuthenticationCookie(ctx:TRPCContext, accessToken:string, ref
                path: '/',
                httpOnly: true,
                secure: isProd,
-               sameSite: "strict",
+               sameSite: "lax",
                maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
           });
      }
