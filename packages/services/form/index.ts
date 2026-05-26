@@ -10,7 +10,7 @@ import {
   type GetPublicFormBySlugInput,
   type SubmitFormResponseInput,
 } from "./model";
-import { db, and, eq, desc, inArray, lt, isNotNull } from "@repo/database";
+import { db, and, eq, desc, inArray, lt, isNotNull, sql } from "@repo/database";
 import { formsTable } from "@repo/database/models/form";
 import { formField } from "@repo/database/models/formFields";
 import { submissionsTable } from "@repo/database/models/submissions";
@@ -154,9 +154,12 @@ class formService {
         validTill: formsTable.validTill,
         createdAt: formsTable.createdAt,
         updatedAt: formsTable.updatedAt,
+        responses: sql<number>`cast(count(${submissionsTable.id}) as integer)`,
       })
       .from(formsTable)
+      .leftJoin(submissionsTable, eq(formsTable.formId, submissionsTable.formId))
       .where(eq(formsTable.createdBy, createdBy))
+      .groupBy(formsTable.formId)
       .orderBy(desc(formsTable.createdAt));
 
     return forms;
@@ -651,6 +654,23 @@ class formService {
       aggregations,
       submissionsList,
     };
+  }
+
+  public async getRecentSubmissions(createdBy: string) {
+    const recentSubmissions = await db
+      .select({
+        submissionId: submissionsTable.id,
+        formId: formsTable.formId,
+        formTitle: formsTable.title,
+        createdAt: submissionsTable.createdAt,
+      })
+      .from(submissionsTable)
+      .innerJoin(formsTable, eq(submissionsTable.formId, formsTable.formId))
+      .where(eq(formsTable.createdBy, createdBy))
+      .orderBy(desc(submissionsTable.createdAt))
+      .limit(5);
+      if(!recentSubmissions || recentSubmissions.length === 0) throw new Error('No new submissions found');
+    return recentSubmissions;
   }
 
   public async checkAndSendExpiredFormDigests() {

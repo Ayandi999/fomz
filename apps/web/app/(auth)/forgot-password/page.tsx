@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "~/trpc/client";
 import Link from "next/link";
+import { ArrowRight, AlertCircle } from "lucide-react";
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -28,35 +29,47 @@ function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen w-full bg-[#050505] flex flex-col justify-center items-center p-6 relative overflow-hidden select-none font-sans">
+      
+      {/* Background ambient blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-48 left-1/4 w-[450px] h-[450px] bg-[#FF6B35]/8 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute top-48 right-1/4 w-[400px] h-[400px] bg-[#FF6B35]/4 rounded-full blur-[140px] animate-pulse" />
+      </div>
+
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md border-2 border-neutral-900 dark:border-neutral-100 bg-background p-8 flex flex-col gap-6"
+        className="w-full max-w-md bg-white/[0.02] backdrop-blur-2xl p-8 rounded-3xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-6 relative z-10"
       >
-        <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4">
-          <h1 className="text-3xl font-extrabold tracking-tight uppercase">Forgot Password</h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">
+        
+        {/* Brand Header */}
+        <div className="flex flex-col items-center text-center gap-2 border-b border-white/5 pb-5">
+          <img src="/som.svg" alt="Formz App Logo" className="h-9 w-auto" />
+          <h1 className="text-2xl font-black text-white tracking-tight mt-2">
+            Forgot Password
+          </h1>
+          <p className="text-[10px] text-[#A1A1A1] uppercase tracking-widest font-black">
             Enter your email to receive a reset link
           </p>
         </div>
 
         {errorMsg && (
-          <div className="bg-red-100 dark:bg-red-950/30 border-2 border-red-500 text-red-800 dark:text-red-400 p-3 text-xs font-bold uppercase tracking-wider text-center">
-            {errorMsg}
+          <div className="bg-red-500/10 border border-red-500 text-red-400 p-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-center flex items-center gap-2 justify-center">
+            <AlertCircle className="w-4 h-4 text-red-500" /> {errorMsg}
           </div>
         )}
 
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[#FF6B35]">
               Email Address
             </label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex h-10 w-full rounded-none border-2 border-neutral-300 dark:border-neutral-700 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-neutral-900 dark:focus-visible:border-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#FF6B35] transition-colors placeholder:text-[#444] disabled:opacity-50 disabled:cursor-not-allowed"
               type="email"
-              placeholder="john@example.com"
+              placeholder="e.g. name@company.com"
               required
               disabled={loading}
             />
@@ -67,17 +80,17 @@ function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-neutral-900 text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 h-11 px-4 py-2 w-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 bg-[#FF6B35] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#FF6B35]/90 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#FF6B35]/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Sending..." : "Send Reset Email"}
+            {loading ? "Sending..." : "Send Reset Email"} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground uppercase tracking-wider text-center border-t-2 border-neutral-900 dark:border-neutral-100 pt-4">
+        <p className="text-[10px] text-[#A1A1A1] uppercase tracking-widest font-black text-center border-t border-white/5 pt-4">
           Remember your password?{" "}
           <Link
             href="/sign-in"
-            className="font-bold text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+            className="font-bold text-[#FF6B35] hover:underline underline-offset-4 transition-colors"
           >
             Sign in
           </Link>

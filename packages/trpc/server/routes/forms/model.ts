@@ -30,6 +30,7 @@ export const getUserFormsOutputModel = z.array(
     validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
     createdAt: z.coerce.date().nullable().optional().describe("Form creation date"),
     updatedAt: z.coerce.date().nullable().optional().describe("Form update date"),
+    responses: z.coerce.number().describe("Number of responses"),
   })
 );
 
@@ -179,3 +180,13 @@ export const submitFormResponseInputModel = z.object({
 export const submitFormResponseOutputModel = z.object({
   success: z.boolean().describe("Whether the response was submitted successfully"),
 });
+
+export const getRecentSubmissionsInputModel = z.undefined();
+export const getRecentSubmissionsOutputModel = z.array(
+  z.object({
+    submissionId: z.string().uuid(),
+    formId: z.string().uuid(),
+    formTitle: z.string(),
+    createdAt: z.coerce.date(),
+  })
+);

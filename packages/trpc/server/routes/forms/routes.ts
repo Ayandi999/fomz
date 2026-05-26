@@ -21,6 +21,8 @@ import {
   submitFormResponseOutputModel,
   getFormAnalyticsInputModel,
   getFormAnalyticsOutputModel,
+  getRecentSubmissionsInputModel,
+  getRecentSubmissionsOutputModel,
 } from "./model";
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { formService, userService } from "../../services";
@@ -256,5 +258,21 @@ export const formsRouter = router({
       const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
       const { formId } = input;
       return await formService.getFormAnalytics({ formId, createdBy });
+    }),
+
+  getRecentSubmissions: autheticatedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/getRecentSubmissions",
+        tags: TAGS,
+      },
+    })
+    .input(getRecentSubmissionsInputModel)
+    .output(getRecentSubmissionsOutputModel)
+    .query(async ({ ctx }) => {
+      const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
+      const recentSubmissions = await formService.getRecentSubmissions(createdBy);
+      return recentSubmissions;
     }),
 });

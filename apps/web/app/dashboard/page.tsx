@@ -7,57 +7,51 @@ import { useCreateForm } from "~/hooks/api/forms/useCreateForm";
 import { useDeleteForm } from "~/hooks/api/forms/useDeleteForm";
 import { useUserForms } from "~/hooks/api/forms/useUserForms";
 import { usePublishForm } from "~/hooks/api/forms/usePublishForm";
+import { useRecentSubmissions } from "~/hooks/api/forms/useRecentSubmissions";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { ExternalLink, Link as LinkIcon, Copy, QrCode } from "lucide-react";
+import { 
+  Plus, Trash2, ExternalLink, Link as LinkIcon, Copy, QrCode, 
+  ArrowRight, Check, Download, FileText, User as UserIcon, 
+  ChevronDown, CheckCircle, Eye, Activity, MoreHorizontal, 
+  BookOpen, HelpCircle, Phone, Sparkles
+} from "lucide-react";
 import QRCode from "qrcode";
 
 type FormStatus = "draft" | "published";
 
-type FormItem = {
-  id: string;
-  title: string;
-  status: FormStatus;
-  responses: number;
-  updatedAt: string;
-};
-
 const inputClass =
-  "flex h-10 w-full rounded-none border-2 border-neutral-300 dark:border-neutral-700 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-neutral-900 dark:focus-visible:border-neutral-100 disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors";
 
 const buttonPrimaryClass =
-  "inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-neutral-900 text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 h-11 px-4 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-accent-hover h-10 px-4 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer";
 
 const buttonSecondaryClass =
-  "inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest border-2 border-neutral-900 dark:border-neutral-100 bg-background hover:bg-neutral-100 dark:hover:bg-neutral-800 h-11 px-4 py-2 transition-colors";
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium border border-border bg-card text-foreground hover:bg-surface-hover h-10 px-4 py-2 transition-all duration-200 cursor-pointer";
 
 const cardClass =
-  "border-2 border-neutral-900 dark:border-neutral-100 bg-background p-6 flex flex-col gap-4";
+  "border border-border bg-card rounded-xl p-6 flex flex-col gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.3)]";
 
-function StatusBadge({ status }: { status: FormStatus }) {
-  return (
-    <span
-      className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border-2 ${
-        status === "published"
-          ? "border-neutral-900 dark:border-neutral-100 bg-neutral-900 text-white dark:bg-white dark:text-black"
-          : "border-neutral-400 dark:border-neutral-600 text-muted-foreground"
-      }`}
-    >
-      {status}
-    </span>
-  );
-}
+const isPlaceholderName = (name: string) => {
+  return /^[A-Z0-9]{7}$/.test(name) || name.startsWith("temp_") || name.length === 0;
+};
 
 export default function DashboardPage() {
   const { user, isLoading: isUserLoading, isFetched } = useUser();
-  const { createFormAsync, isPending, isError, error } = useCreateForm();
+  const { createFormAsync, isPending } = useCreateForm();
   const { deleteFormAsync } = useDeleteForm();
   const { forms: realForms, isLoading: isFormsLoading, refetch: refetchForms } = useUserForms();
+  const { recentSubmissions, isLoading: isSubmissionsLoading } = useRecentSubmissions();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
+  const [activeFormMenuId, setActiveFormMenuId] = useState<string | null>(null);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   // Publish & Share Modal States
   const [selectedFormForModal, setSelectedFormForModal] = useState<any | null>(null);
@@ -68,6 +62,10 @@ export default function DashboardPage() {
   const [modalShareTab, setModalShareTab] = useState<"link" | "qr">("link");
   const [modalLinkCopied, setModalLinkCopied] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (selectedFormForModal?.slug) {
@@ -100,23 +98,44 @@ export default function DashboardPage() {
     if (!title) return;
 
     const description = newDescription.trim() || undefined;
-    await createFormAsync({ title, description });
-    await refetchForms();
+    const createToastId = toast.loading("Creating form...");
+    try {
+      await createFormAsync({ title, description });
+      await refetchForms();
+      setNewTitle("");
+      setNewDescription("");
+      setShowCreate(false);
+      toast.success("Form created successfully!", { id: createToastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create form.", { id: createToastId });
+    }
+  };
 
-    setNewTitle("");
-    setNewDescription("");
-    setShowCreate(false);
+  const handleCreateFromTemplate = async (templateName: string) => {
+    const createToastId = toast.loading(`Creating ${templateName} form...`);
+    try {
+      await createFormAsync({ 
+        title: `${templateName} Form`, 
+        description: `A pre-structured dynamic ${templateName.toLowerCase()} flow.` 
+      });
+      await refetchForms();
+      toast.success(`${templateName} template deployed successfully!`, { id: createToastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create from template.", { id: createToastId });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    const deleteToastId = toast.loading("Permanently deleting form and purging files...");
+    const deleteToastId = toast.loading("Deleting form and purging answers...");
     try {
       await deleteFormAsync({ formId: id });
       await refetchForms();
       setDeleteConfirmationId(null);
-      toast.success("Form and all associated media deleted successfully!", { id: deleteToastId });
+      toast.success("Form and assets deleted successfully!", { id: deleteToastId });
     } catch (err) {
-      console.error("Failed to delete form:", err);
+      console.error(err);
       toast.error("Failed to delete form.", { id: deleteToastId });
     }
   };
@@ -147,7 +166,7 @@ export default function DashboardPage() {
       await refetchForms();
       setSelectedFormForModal((prev: any) => prev ? { ...prev, isPublished: nextPublishState } : null);
     } catch (err) {
-      console.error("Failed to toggle publish status", err);
+      console.error(err);
       toast.error("Failed to update publish state.", { id: publishToastId });
     }
   };
@@ -165,7 +184,7 @@ export default function DashboardPage() {
       toast.success("Publish settings saved!", { id: publishToastId });
       await refetchForms();
     } catch (err) {
-      console.error("Failed to save publish settings", err);
+      console.error(err);
       toast.error("Failed to save settings.", { id: publishToastId });
     }
   };
@@ -178,17 +197,26 @@ export default function DashboardPage() {
       toast.success("Share link copied to clipboard!");
       setTimeout(() => setModalLinkCopied(false), 2000);
     }).catch((err) => {
-      console.error("Failed to copy link", err);
+      console.error(err);
       toast.error("Failed to copy link.");
+    });
+  };
+
+  const handleCopyRecentLink = (slug: string) => {
+    if (!slug) return;
+    const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${slug}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast.success("Share link copied successfully!");
     });
   };
 
   if (isUserLoading || isFormsLoading || !user?.id) {
     return (
-      <div className="min-h-screen w-full flex flex-col justify-center items-center p-4">
-        <div className={`${cardClass} w-full max-w-md items-center`}>
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Loading dashboard…
+      <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 bg-[#0F0F0F]">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+          <p className="text-xs font-bold uppercase tracking-widest text-text-tertiary">
+            Orienting workspace…
           </p>
         </div>
       </div>
@@ -196,157 +224,407 @@ export default function DashboardPage() {
   }
 
   const publishedCount = displayForms.filter((f) => f.isPublished).length;
-  const totalResponses = 0;
+  const totalResponses = displayForms.reduce((sum, f) => sum + (f.responses || 0), 0);
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center p-4 py-8">
-      <div className="w-full max-w-4xl flex flex-col gap-6">
-        {/* Top Navbar */}
-        <nav className="w-full border-2 border-neutral-900 dark:border-neutral-100 bg-background px-6 py-4 flex items-center justify-between">
-          <span className="text-xl font-black tracking-tight uppercase bg-neutral-900 text-white dark:bg-white dark:text-black px-2 py-0.5">
-            Streamyst
-          </span>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.email}
-            </span>
+    <div className="min-h-screen w-full flex flex-col bg-[#0F0F0F] text-white antialiased font-sans select-none pb-12">
+      
+      {/* Top Navbar */}
+      <header className="w-full border-b border-border bg-[#0F0F0F]">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center">
+            <img src="/som.svg" alt="Formz! App Logo" className="h-10 w-auto" />
           </div>
-        </nav>
+          <div className="flex items-center gap-4 relative z-50">
+            {mounted && (
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="h-9 w-9 flex items-center justify-center bg-[#181818] border-none hover:bg-[#1E1E1E] transition-all duration-200 cursor-pointer rounded-full"
+                title="Toggle Theme"
+              >
+                {theme === "dark" ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-4 h-4 text-[#FF6B35]"
+                  >
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-4 h-4 text-[#FF6B35]"
+                  >
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                  </svg>
+                )}
+              </button>
+            )}
 
-        {/* Header */}
-        <header className={cardClass}>
-          <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tight uppercase">
-                Dashboard
-              </h1>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
-                Welcome back, {user.firstName ? `${user.firstName} ${user.lastName}` : user.email}
-              </p>
+            {/* User Profile dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                className="flex items-center gap-2 bg-[#181818] border-none hover:bg-[#1E1E1E] transition-all duration-200 p-1 pr-3 rounded-full cursor-pointer"
+              >
+                <div className="h-7 w-7 rounded-full bg-[#FF6B35] text-white font-bold text-xs flex items-center justify-center">
+                  {user?.firstName ? user.firstName.substring(0, 2).toUpperCase() : "AP"}
+                </div>
+                <span className="text-xs font-semibold text-[#A1A1A1] group-hover:text-white">
+                  {user?.firstName ? `${user.firstName} ${user.lastName || ""}` : "Ayandip Pal"}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#666]" />
+              </button>
+
+              {showUserDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-[#181818] border border-border rounded-xl shadow-2xl z-50 flex flex-col p-1.5 animate-fade-in">
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      router.push("/dashboard");
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-[#A1A1A1] hover:text-white hover:bg-[#1E1E1E] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors duration-200"
+                  >
+                    <UserIcon className="w-3.5 h-3.5 text-[#FF6B35]" /> Workspace
+                  </button>
+                  <div className="border-t border-border w-full my-1.5"></div>
+                  <a
+                    href="/sign-in"
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer no-underline transition-colors duration-200"
+                  >
+                    Logout
+                  </a>
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container Layout */}
+      <main className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row gap-8 items-start">
+        
+        {/* Left column sidebar: stats & recent activity (~280px wide) */}
+        <aside className="w-full md:w-[280px] shrink-0 flex flex-col gap-6">
+          
+          {/* Greeting context */}
+          <div className="flex flex-col">
+            <h1 className="text-xl font-bold text-white tracking-tight">
+              Hey, {user?.firstName || "Ayandip"}
+            </h1>
+            <p className="text-[11px] text-[#666] uppercase font-bold tracking-wide mt-0.5">
+              Welcome back to your workspace
+            </p>
+          </div>
+
+          {/* Stats strip - Horizontal ambient layout, 12px radius, #1C1C1C background */}
+          <div className="bg-[#1C1C1C] p-4 rounded-xl flex items-center justify-between gap-1 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+            <div className="flex flex-col">
+              <span className="text-[28px] font-bold text-white leading-none">
+                {displayForms.length}
+              </span>
+              <span className="text-[11px] uppercase tracking-wider text-[#666] font-bold mt-1.5 flex items-center gap-1">
+                <FileText className="w-3 h-3 text-[#A1A1A1]" /> Form{displayForms.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="h-8 w-[1px] bg-border/40"></div>
+            <div className="flex flex-col">
+              <span className="text-[28px] font-bold text-white leading-none">
+                {publishedCount}
+              </span>
+              <span className="text-[11px] uppercase tracking-wider text-[#666] font-bold mt-1.5 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3 text-[#FF6B35]" /> Published
+              </span>
+            </div>
+            <div className="h-8 w-[1px] bg-border/40"></div>
+            <div className="flex flex-col">
+              <span className="text-[28px] font-bold text-white leading-none">
+                {totalResponses}
+              </span>
+              <span className="text-[11px] uppercase tracking-wider text-[#666] font-bold mt-1.5 flex items-center gap-1">
+                <Eye className="w-3 h-3 text-[#A1A1A1]" /> Views
+              </span>
+            </div>
+          </div>
+
+          {/* Recent Responses Section */}
+          <div className="flex flex-col gap-3 mt-2">
+            <div className="flex items-center gap-2 pb-1">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-[#666]">
+                Recent Responses
+              </h2>
+            </div>
+
+            {isSubmissionsLoading ? (
+              <div className="flex flex-col gap-2.5">
+                {[1, 2, 3].map((skeleton) => (
+                  <div 
+                    key={skeleton}
+                    className="h-16 w-full rounded-xl overflow-hidden relative bg-[#181818] border border-transparent"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer" />
+                  </div>
+                ))}
+              </div>
+            ) : !recentSubmissions || recentSubmissions.length === 0 ? (
+              <div className="bg-[#181818] rounded-xl p-6 flex flex-col items-center text-center gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+                <div className="w-12 h-12 rounded-full bg-[#1C1C1C] flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-[#666]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h4 className="text-[16px] font-semibold text-white">
+                    No responses yet
+                  </h4>
+                  <p className="text-[14px] text-[#666] leading-snug">
+                    Share your form to start collecting answers
+                  </p>
+                </div>
+                {displayForms.length > 0 && displayForms.filter(f => f.isPublished)[0] && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstPublishedForm = displayForms.filter(f => f.isPublished)[0];
+                      if (firstPublishedForm?.slug) {
+                        handleCopyRecentLink(firstPublishedForm.slug);
+                      }
+                    }}
+                    className="w-full py-2 bg-transparent border border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35]/10 transition-colors duration-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 justify-center cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" /> Copy Link
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto pr-1">
+                {recentSubmissions.slice(0, 4).map((sub) => (
+                  <div
+                    key={sub.submissionId}
+                    className="bg-[#181818] p-3 rounded-xl flex gap-3 hover:bg-[#1E1E1E] transition-all duration-200 shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
+                  >
+                    <div className="w-8 h-8 shrink-0 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] flex items-center justify-center text-xs font-bold">
+                      {sub.formTitle ? sub.formTitle.substring(0, 2).toUpperCase() : "RM"}
+                    </div>
+                    <div className="min-w-0 flex-1 flex flex-col">
+                      <div className="flex justify-between items-baseline gap-1">
+                        <span className="text-xs font-bold text-white truncate">
+                          {sub.formTitle}
+                        </span>
+                        <span className="text-[9px] text-[#666] tracking-tight uppercase whitespace-nowrap shrink-0">
+                          {new Date(sub.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-[#A1A1A1] truncate italic mt-0.5">
+                        Response recorded successfully
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </aside>
+
+        {/* Right main area columns: form feed and Quick Start templates */}
+        <section className="flex-1 flex flex-col gap-8 w-full">
+          
+          {/* Header block with actions */}
+          <div className="w-full flex items-center justify-between border-b border-border/30 pb-4">
+            <div className="flex flex-col">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-[#A1A1A1]">
+                YOUR FORMS
+              </h2>
+            </div>
+
             <button
-              type="button"
               onClick={() => setShowCreate(true)}
-              className={`${buttonPrimaryClass} w-full sm:w-auto`}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90 h-9 px-4 transition-all duration-200 cursor-pointer shadow-sm"
             >
-              + New Form
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> New Form
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">            <div className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Total Forms
-              </span>
-              <span className="text-2xl font-extrabold">{displayForms.length}</span>
-            </div>
-            <div className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Published
-              </span>
-              <span className="text-2xl font-extrabold">{publishedCount}</span>
-            </div>
-            <div className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Total Responses
-              </span>
-              <span className="text-2xl font-extrabold">{totalResponses}</span>
-            </div>
-          </div>
-        </header>
- 
-        {/* Forms list */}
-        <section className={cardClass}>
-          <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4">
-            <h2 className="text-xl font-extrabold tracking-tight uppercase">
-              Your Forms
-            </h2>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">
-              Create, edit, and share conversational forms
-            </p>
-          </div>
- 
+          {/* Form List block */}
           {displayForms.length === 0 ? (
-            <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center gap-4 text-center">
-              <p className="text-sm text-muted-foreground uppercase tracking-wider">
-                No forms yet — create your first one
+            <div className="bg-[#181818] p-12 rounded-xl flex flex-col items-center justify-center gap-4 text-center shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+              <p className="text-sm text-[#A1A1A1] uppercase tracking-wider">
+                No forms yet — deploy your first conversational canvas
               </p>
               <button
-                type="button"
                 onClick={() => setShowCreate(true)}
-                className={buttonPrimaryClass}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90 h-9 px-4 transition-all duration-200 cursor-pointer shadow-sm"
               >
-                Create Form
+                Create First Form
               </button>
             </div>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {displayForms.map((form) => (
-                <li
-                  key={form.id}
-                  onClick={() => router.push(`/dashboard/edit/${form.id}`)}
-                  className="border-2 border-neutral-300 dark:border-neutral-700 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between hover:border-neutral-900 dark:hover:border-neutral-100 transition-colors cursor-pointer"
-                >
-                  <div className="flex flex-col gap-2 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold uppercase tracking-tight truncate">
-                        {form.title}
-                      </h3>
-                      <StatusBadge status={form.isPublished ? "published" : "draft"} />
+            <div className="flex flex-col gap-3">
+              {displayForms.map((form) => {
+                const isTemp = isPlaceholderName(form.title);
+                return (
+                  <div
+                    key={form.id}
+                    onClick={() => router.push(`/dashboard/edit/${form.id}`)}
+                    className="group bg-[#181818] hover:bg-[#1E1E1E] p-[20px_24px] rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-[#0F0F0F] flex items-center justify-center shrink-0 border border-transparent">
+                        <FileText className="w-5 h-5 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0 flex flex-col gap-0.5">
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          {isTemp ? (
+                            <span className="text-[18px] font-bold text-[#666] italic">
+                              Untitled Form
+                            </span>
+                          ) : (
+                            <span className="text-[18px] font-bold text-white truncate">
+                              {form.title}
+                            </span>
+                          )}
+                          {isTemp && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-[#2A2A2A] text-[#A1A1A1] tracking-widest uppercase rounded">
+                              {form.title}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[13px] text-[#666]">
+                          {form.responses || 0} responses · Updated {form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : "Just now"}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                      0 responses · Updated {form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : "Just now"}
-                    </p>
+
+                    <div className="flex items-center justify-between md:justify-end gap-4 shrink-0">
+                      {/* Status Badges */}
+                      {form.isPublished ? (
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5 mr-2">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                          Published
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold uppercase tracking-wider bg-[#3A3A3A] text-[#A1A1A1] px-2.5 py-0.5 rounded-full mr-2">
+                          Draft
+                        </span>
+                      )}
+
+                      {/* Hover Actions - hidden by default and fade in on row hover */}
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/dashboard/edit/${form.id}`)}
+                          className="h-8 px-3 text-xs bg-transparent border-none text-[#A1A1A1] hover:text-white hover:bg-[#1C1C1C] rounded-lg transition-colors duration-200 cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={(e) => openPublishModal(e, form)}
+                          className="h-8 px-3.5 text-xs bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white border-none font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-all duration-200"
+                        >
+                          {form.isPublished ? "Share" : "Publish"} <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveFormMenuId(activeFormMenuId === form.id ? null : form.id);
+                            }}
+                            className="h-8 w-8 flex items-center justify-center hover:bg-[#1C1C1C] text-[#A1A1A1] hover:text-white rounded-lg transition-colors duration-200 cursor-pointer"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+
+                          {activeFormMenuId === form.id && (
+                            <div className="absolute right-0 mt-1 w-32 bg-[#1C1C1C] border border-border rounded-lg shadow-xl z-50 p-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveFormMenuId(null);
+                                  setDeleteConfirmationId(form.id);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 font-bold uppercase tracking-wider rounded-md flex items-center gap-1.5 cursor-pointer bg-transparent border-none"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/dashboard/edit/${form.id}`);
-                      }}
-                      className={`${buttonSecondaryClass} h-9 px-3 text-xs`}
-                    >
-                      Edit
-                    </button>
-                    {form.isPublished ? (
-                      <button
-                        type="button"
-                        onClick={(e) => openPublishModal(e, form, "link")}
-                        className={`${buttonSecondaryClass} h-9 px-3 text-xs`}
-                      >
-                        Share
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => openPublishModal(e, form, "link")}
-                        className={`${buttonSecondaryClass} h-9 px-3 text-xs bg-amber-500 hover:bg-amber-650 border-neutral-900 text-neutral-900 dark:bg-amber-400 dark:hover:bg-amber-450 dark:border-neutral-100`}
-                      >
-                        Publish
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirmationId(form.id);
-                      }}
-                      className={`${buttonSecondaryClass} h-9 px-3 text-xs border-red-600 dark:border-red-600 text-red-600 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white`}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                );
+              })}
+            </div>
           )}
+
+          {/* Quick Start templates section */}
+          <div className="flex flex-col gap-4 mt-2">
+            <div className="flex items-center gap-2 border-b border-border/30 pb-2">
+              <Sparkles className="w-4 h-4 text-[#FF6B35] animate-pulse" />
+              <h3 className="text-[16px] font-bold text-white">
+                Quick Start
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { name: "Feedback", icon: FileText, desc: "Customer review" },
+                { name: "Contact", icon: Phone, desc: "Lead collection" },
+                { name: "Survey", icon: BookOpen, desc: "Product research" },
+                { name: "Quiz", icon: HelpCircle, desc: "Trivia and test" },
+              ].map((tmpl) => (
+                <button
+                  key={tmpl.name}
+                  type="button"
+                  onClick={() => handleCreateFromTemplate(tmpl.name)}
+                  className="w-full aspect-square border border-transparent bg-[#181818] hover:scale-[1.02] hover:border-[#FF6B35]/50 p-4 rounded-xl flex flex-col items-center justify-center text-center gap-2.5 transition-all duration-200 cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#0F0F0F] flex items-center justify-center">
+                    <tmpl.icon className="w-5 h-5 text-[#FF6B35]" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-bold text-white">
+                      {tmpl.name}
+                    </span>
+                    <span className="text-[9px] uppercase tracking-wider text-[#666] font-semibold">
+                      {tmpl.desc}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
         </section>
-      </div>
+      </main>
 
       {/* Create form modal */}
       {showCreate && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in"
           onClick={() => setShowCreate(false)}
         >
           <form
@@ -354,17 +632,17 @@ export default function DashboardPage() {
             onClick={(e) => e.stopPropagation()}
             className={`${cardClass} w-full max-w-md gap-6`}
           >
-            <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4">
-              <h2 className="text-2xl font-extrabold tracking-tight uppercase">
+            <div className="flex flex-col gap-1 border-b border-border pb-4">
+              <h2 className="text-2xl font-extrabold tracking-tight uppercase text-foreground">
                 New Form
               </h2>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs text-text-secondary uppercase tracking-wider">
                 Give your form a name to get started
               </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary">
                 Form Title
               </label>
               <input
@@ -379,7 +657,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary">
                 Description (optional)
               </label>
               <textarea
@@ -390,12 +668,6 @@ export default function DashboardPage() {
                 disabled={isPending}
               />
             </div>
-
-            {isError && (
-              <p className="text-xs font-bold uppercase tracking-wider text-red-600">
-                {error?.message ?? "Failed to create form"}
-              </p>
-            )}
 
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
@@ -409,7 +681,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => setShowCreate(false)}
                 disabled={isPending}
-                className={`${buttonSecondaryClass} flex-1`}
+                className={`${buttonSecondaryClass} flex-1 bg-card border-border hover:bg-surface-hover text-foreground`}
               >
                 Cancel
               </button>
@@ -421,35 +693,33 @@ export default function DashboardPage() {
       {/* Publish & Share Modal */}
       {showPublishModal && selectedFormForModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
           onClick={() => setShowPublishModal(false)}
         >
           <div
-            className="bg-background border-2 border-neutral-900 dark:border-neutral-100 w-full max-w-md flex flex-col gap-0 shadow-2xl text-neutral-900 dark:text-neutral-100"
+            className="bg-card border border-border w-full max-w-md flex flex-col gap-0 shadow-2xl text-foreground rounded-lg overflow-hidden animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="border-b-2 border-neutral-900 dark:border-neutral-100 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                <ExternalLink className="w-4 h-4 text-amber-500" /> Publish & Share
+            <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+              <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-foreground">
+                <ExternalLink className="w-4 h-4 text-primary animate-pulse" /> Publish & Share
               </h2>
               <button
                 type="button"
                 onClick={() => setShowPublishModal(false)}
-                className="text-muted-foreground hover:text-foreground text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none"
+                className="text-text-secondary hover:text-foreground text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none"
               >
                 ✕
               </button>
             </div>
 
             <div className="flex flex-col gap-6 px-6 py-6">
-              {/* Publish Toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-black uppercase tracking-widest">
+                  <p className="text-sm font-black uppercase tracking-widest text-foreground">
                     {modalIsPublished ? "Published" : "Unpublished"}
                   </p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                  <p className="text-[10px] text-text-secondary uppercase tracking-wider mt-0.5">
                     {modalIsPublished
                       ? "Your form is live and accepting responses."
                       : "Your form is a draft — not visible to the public."}
@@ -459,15 +729,14 @@ export default function DashboardPage() {
                   type="button"
                   onClick={handleModalTogglePublish}
                   disabled={isPublishing}
-                  className={`${modalIsPublished ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                  className={`${modalIsPublished ? buttonPrimaryClass : buttonSecondaryClass + " bg-card border-border hover:bg-surface-hover text-foreground"} h-9 px-4 text-xs flex items-center gap-1.5`}
                 >
                   {isPublishing ? "Updating…" : modalIsPublished ? "Unpublish" : "Publish Now"}
                 </button>
               </div>
 
-              {/* Visibility Selector */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
                   Visibility
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -476,26 +745,20 @@ export default function DashboardPage() {
                       key={v}
                       type="button"
                       onClick={() => setModalVisibility(v)}
-                      className={`border-2 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                      className={`border py-2 text-[10px] font-black uppercase tracking-widest transition-colors rounded ${
                         modalVisibility === v
-                          ? "border-neutral-900 dark:border-neutral-100 bg-neutral-900 text-white dark:bg-white dark:text-black"
-                          : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-600 bg-background"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:border-border-active bg-card text-foreground"
                       }`}
                     >
                       {v}
                     </button>
                   ))}
                 </div>
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                  {modalVisibility === "PUBLIC" && "Anyone can find and fill this form."}
-                  {modalVisibility === "UNLISTED" && "Only people with the link can access."}
-                  {modalVisibility === "PRIVATE" && "Form is hidden from all respondents."}
-                </p>
               </div>
 
-              {/* Expiration Settings */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
                   Expiration Date (optional)
                 </label>
                 <input
@@ -504,39 +767,27 @@ export default function DashboardPage() {
                   onChange={(e) => setModalValidTill(e.target.value)}
                   className={`${inputClass} text-xs`}
                 />
-                {modalValidTill && (
-                  <button
-                    type="button"
-                    onClick={() => setModalValidTill("")}
-                    className="text-[9px] text-red-500 hover:text-red-700 font-bold uppercase tracking-wider text-left cursor-pointer bg-transparent border-none"
-                  >
-                    ✕ Clear expiration
-                  </button>
-                )}
               </div>
 
-              {/* Save Settings Button */}
               <button
                 type="button"
                 onClick={handleModalSaveSettings}
                 disabled={isPublishing}
-                className={`${buttonSecondaryClass} w-full h-10 text-xs`}
+                className={`${buttonSecondaryClass} bg-card border-border hover:bg-surface-hover text-foreground w-full h-10 text-xs`}
               >
                 Save Publish Settings
               </button>
 
-              {/* Share link and QR (Only if published) */}
               {modalIsPublished && (
-                <div className="border-t-2 border-neutral-200 dark:border-neutral-800 pt-4 flex flex-col gap-3">
-                  {/* Tab switcher */}
-                  <div className="flex border-2 border-neutral-200 dark:border-neutral-800">
+                <div className="border-t border-border pt-4 flex flex-col gap-3">
+                  <div className="flex border border-border rounded overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setModalShareTab("link")}
                       className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer ${
                         modalShareTab === "link"
-                          ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
-                          : "hover:bg-neutral-100 dark:hover:bg-neutral-900 bg-background text-neutral-900 dark:text-neutral-100"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-surface-hover bg-card text-foreground"
                       }`}
                     >
                       <LinkIcon className="w-3 h-3" /> Link
@@ -546,8 +797,8 @@ export default function DashboardPage() {
                       onClick={() => setModalShareTab("qr")}
                       className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer ${
                         modalShareTab === "qr"
-                          ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
-                          : "hover:bg-neutral-100 dark:hover:bg-neutral-900 bg-background text-neutral-900 dark:text-neutral-100"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-surface-hover bg-card text-foreground"
                       }`}
                     >
                       <QrCode className="w-3 h-3" /> QR Code
@@ -567,29 +818,14 @@ export default function DashboardPage() {
                         onClick={handleModalCopyLink}
                         className={`${buttonPrimaryClass} h-10 px-3 text-xs flex items-center gap-1.5 shrink-0`}
                       >
-                        {modalLinkCopied ? (
-                          "Copied!"
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" /> Copy
-                          </>
-                        )}
+                        {modalLinkCopied ? "Copied!" : <><Copy className="w-3.5 h-3.5" /> Copy</>}
                       </button>
-                      <a
-                        href={`/share/${selectedFormForModal.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`${buttonSecondaryClass} h-10 px-3 text-xs flex items-center gap-1.5 shrink-0`}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> Open
-                      </a>
                     </div>
                   )}
 
                   {modalShareTab === "qr" && qrCodeDataUrl && (
-                    <div className="flex flex-col items-center gap-3 py-2 animate-fade-in">
-                      <div className="border-2 border-neutral-200 dark:border-neutral-800 p-4 bg-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <div className="flex flex-col items-center gap-3 py-2">
+                      <div className="border border-border p-4 bg-white rounded">
                         <img
                           src={qrCodeDataUrl}
                           alt="QR Code"
@@ -598,9 +834,6 @@ export default function DashboardPage() {
                           className="block"
                         />
                       </div>
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest text-center">
-                        Scan to open the form
-                      </p>
                     </div>
                   )}
                 </div>
@@ -619,19 +852,19 @@ export default function DashboardPage() {
             onClick={() => setDeleteConfirmationId(null)}
           >
             <div
-              className={`${cardClass} w-full max-w-md gap-6 shadow-2xl animate-fade-in text-neutral-900 dark:text-neutral-100`}
+              className={`${cardClass} w-full max-w-md gap-6 shadow-2xl animate-fade-in text-foreground border border-border`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col gap-1 border-b-2 border-neutral-900 dark:border-neutral-100 pb-4">
-                <h2 className="text-2xl font-extrabold tracking-tight uppercase text-red-500">
+              <div className="flex flex-col gap-1 border-b border-border pb-4">
+                <h2 className="text-2xl font-extrabold tracking-tight uppercase text-error">
                   Delete Form?
                 </h2>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                <p className="text-xs text-text-secondary uppercase tracking-wider">
                   This action is permanent and cannot be undone
                 </p>
               </div>
 
-              <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+              <p className="text-sm leading-relaxed text-text-secondary">
                 Are you sure you want to permanently delete "{formToDelete?.title || "this form"}"? 
                 This will purge all its associated answers, files, recordings, and media resources from the storage.
               </p>
@@ -640,14 +873,14 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => handleDelete(deleteConfirmationId)}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-red-600 text-white hover:bg-red-500 h-11 px-4 py-2 transition-colors cursor-pointer flex-1"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-bold uppercase tracking-widest bg-error text-white hover:bg-error/90 h-11 px-4 py-2 transition-colors cursor-pointer flex-1 border-none shadow-sm"
                 >
                   Delete
                 </button>
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmationId(null)}
-                  className={`${buttonSecondaryClass} flex-1`}
+                  className={`${buttonSecondaryClass} bg-card border-border hover:bg-surface-hover text-foreground flex-1`}
                 >
                   Cancel
                 </button>

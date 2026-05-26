@@ -8,7 +8,7 @@ import {
   Sparkles, Type, AlignLeft, Hash, Mail, Calendar, ToggleLeft, Star,
   Image as ImageIcon, Video as VideoIcon, Mic as AudioIcon, FileText as FileIcon,
   List as ListIcon, ChevronDown, Sliders, User as UserIcon, MapPin as MapPinIcon,
-  Phone as PhoneIcon, Globe as GlobeIcon, Link as LinkIcon, Copy, ExternalLink, QrCode, ArrowRight, Check, Download
+  Phone as PhoneIcon, Globe as GlobeIcon, Link as LinkIcon, Copy, ExternalLink, QrCode, ArrowRight, Check, Download, LogOut, Edit3
 } from "lucide-react";
 import { useUser } from "~/hooks/api/auth/useUser";
 import { useGetFormFields } from "~/hooks/api/forms/useGetFormFields";
@@ -18,8 +18,10 @@ import { useDeleteFormField } from "~/hooks/api/forms/useDeleteFormField";
 import { usePublishForm } from "~/hooks/api/forms/usePublishForm";
 import { useUserForms } from "~/hooks/api/forms/useUserForms";
 import { useGetFormAnalytics } from "~/hooks/api/forms/useGetFormAnalytics";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import AnalyticsPanel from "./analytics";
+import { trpc } from "~/trpc/client";
 
 type FieldType =
   | "LONG_TEXT"
@@ -59,16 +61,16 @@ interface QuestionItem {
 }
 
 const inputClass =
-  "flex h-10 w-full rounded-none border-2 border-neutral-300 dark:border-neutral-700 bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-neutral-900 dark:focus-visible:border-neutral-100 disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 transition-colors";
 
 const buttonPrimaryClass =
-  "inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-neutral-900 text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 h-11 px-4 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm";
 
 const buttonSecondaryClass =
-  "inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest border-2 border-neutral-900 dark:border-neutral-100 bg-background hover:bg-neutral-100 dark:hover:bg-neutral-800 h-11 px-4 py-2 transition-colors cursor-pointer";
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium border border-border bg-background text-foreground hover:bg-secondary h-10 px-4 py-2 transition-colors cursor-pointer";
 
 const cardClass =
-  "border-2 border-neutral-900 dark:border-neutral-100 bg-background p-6 flex flex-col gap-4";
+  "border border-border bg-card rounded-lg p-6 flex flex-col gap-4 shadow-sm";
 
 export default function EditFormPage(props: { params: Promise<{ formId: string }> }) {
   const params = use(props.params);
@@ -77,6 +79,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   
   const { user, isLoading: isUserLoading } = useUser();
   const { forms } = useUserForms();
+  const currentForm = forms?.find((f) => f.id === formId);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const { fields: dbFields, isLoading: isFieldsLoading, refetch: refetchFields } = useGetFormFields(formId);
   const { createFormFieldsAsync, isPending: isCreating } = useCreateFormFields();
@@ -92,6 +101,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const [publishStatus, setPublishStatus] = useState<boolean>(false);
   const [showAddContent, setShowAddContent] = useState<boolean>(false);
 
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitleVal, setEditedTitleVal] = useState("");
+
   // Publish/Share panel states
   const [showPublishPanel, setShowPublishPanel] = useState<boolean>(false);
   const [publishVisibility, setPublishVisibility] = useState<"PUBLIC" | "PRIVATE" | "UNLISTED">("UNLISTED");
@@ -101,6 +113,26 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   
   const [activeTab, setActiveTab] = useState<"build" | "analytics">("build");
   const [notificationEmailsInput, setNotificationEmailsInput] = useState<string>("");
+  const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (currentForm?.title) {
+      setEditedTitleVal(currentForm.title);
+    }
+  }, [currentForm?.title]);
+
+  const signOutMutation = trpc.auth.signOut.useMutation();
+  const handleLogout = async () => {
+    try {
+      await signOutMutation.mutateAsync();
+      router.push("/sign-in");
+    } catch (err) {
+      console.error("Logout failed, clearing cookies manually", err);
+      document.cookie = "access-cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie = "refresh-cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      router.push("/sign-in");
+    }
+  };
 
   // Fetch responses analytics
   const { analytics, refetch: refetchAnalytics } = useGetFormAnalytics(formId);
@@ -402,8 +434,6 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const isDirtyRef = useRef<boolean>(false);
   const questionsRef = useRef<QuestionItem[]>([]);
   
-  const currentForm = forms?.find((f) => f.id === formId);
-
   const getQuestionChoices = (question: QuestionItem): string[] => {
     if (!question.placeholder) {
       return ["Option A", "Option B", "Option C"];
@@ -483,13 +513,45 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
         labelKey: f.labelKey,
         parentId: f.parentId || null,
       }));
-      setQuestions(mapped);
+      if (mapped.length === 0) {
+        const defaultQuestion: QuestionItem = {
+          clientTempId: "temp-long-text-" + Math.random().toString(36).substring(2, 9),
+          fieldType: "LONG_TEXT",
+          label: "Describe your feedback in detail...",
+          placeholder: "Type your long response here...",
+          isRequired: false,
+          index: 1.0,
+          labelKey: "feedback_detail",
+          description: "Please share any additional details or feedback.",
+          parentId: null,
+        };
+        setQuestions([defaultQuestion]);
+      } else {
+        setQuestions(mapped);
+      }
       setIsDirty(false);
       isDirtyRef.current = false;
     } else {
       setQuestions([]);
     }
   }, [dbFields]);
+
+  useEffect(() => {
+    if (!isFieldsLoading && (!dbFields || dbFields.length === 0) && questions.length === 0) {
+      const defaultQuestion: QuestionItem = {
+        clientTempId: "temp-long-text-" + Math.random().toString(36).substring(2, 9),
+        fieldType: "LONG_TEXT",
+        label: "Describe your feedback in detail...",
+        placeholder: "Type your long response here...",
+        isRequired: false,
+        index: 1.0,
+        labelKey: "feedback_detail",
+        description: "Please share any additional details or feedback.",
+        parentId: null,
+      };
+      setQuestions([defaultQuestion]);
+    }
+  }, [isFieldsLoading, dbFields, questions.length]);
 
   // Mirror questions to ref
   useEffect(() => {
@@ -829,6 +891,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
       });
     });
 
+    const oldTopLevel = questions.filter(item => !item.parentId);
+    const deletedParentIdx = oldTopLevel.findIndex(item => 
+      (q.id && item.id === q.id) || 
+      (q.clientTempId && item.clientTempId === q.clientTempId)
+    );
+
     setQuestions(reIndexed);
     setIsDirty(true);
     isDirtyRef.current = true;
@@ -849,16 +917,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
           setActiveIdx(parentIdx !== -1 ? parentIdx : activeIdx);
         }
       } else {
-        const firstParent = reIndexed.find(item => !item.parentId);
-        if (firstParent) {
-          const firstParentIdx = reIndexed.filter(item => !item.parentId).findIndex(item => 
-            (firstParent.id && item.id === firstParent.id) || 
-            (firstParent.clientTempId && item.clientTempId === firstParent.clientTempId)
-          );
-          setActiveIdx(firstParentIdx !== -1 ? firstParentIdx : 0);
-        } else {
-          setActiveIdx(0);
-        }
+        const targetIdx = Math.max(0, deletedParentIdx - 1);
+        setActiveIdx(targetIdx);
       }
     }
   };
@@ -991,30 +1051,133 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     });
   };
 
+  const handleTitleSubmit = async () => {
+    setIsEditingTitle(false);
+    if (!editedTitleVal.trim() || editedTitleVal.trim() === currentForm?.title) return;
+    const saveToastId = toast.loading("Updating form name...");
+    try {
+      // Autosave handles standard dynamic title metadata pushing or general updates
+      await executeAutosave(questions);
+      toast.success("Form renamed successfully!", { id: saveToastId });
+    } catch (err) {
+      toast.error("Failed to rename form.", { id: saveToastId });
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full flex flex-col items-center p-4 py-8">
+    <div className="min-h-screen w-full flex flex-col items-center p-4 py-8 bg-[#0F0F0F] text-white">
       <div className="w-full max-w-none flex flex-col gap-6 px-4 lg:px-8">
         
-        {/* Navigation Bar */}
-        <nav className="w-full border-2 border-neutral-900 dark:border-neutral-100 bg-background px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={handleBackToDashboard}
-            className="flex items-center gap-2 text-xs font-black tracking-widest uppercase hover:text-muted-foreground transition-colors cursor-pointer bg-transparent border-none text-neutral-900 dark:text-neutral-100"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-          </button>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-4">
-              {currentForm?.title || "Conversational Form Builder"}
-            </span>
-            <div className="flex border-2 border-neutral-900 dark:border-neutral-100 bg-background h-9 rounded-none shrink-0 overflow-hidden mr-4">
+        {/* Navigation Bar - completely custom styled, no borders, ambient elevation */}
+        <nav className="w-full bg-[#161616] p-6 flex flex-col gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.4)] rounded-2xl">
+          {/* Row 1 */}
+          <div className="flex items-center justify-between">
+            {/* Left side: Back to Dashboard, muted gray */}
+            <button
+              onClick={handleBackToDashboard}
+              className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-[#666] hover:text-white transition-colors duration-200 cursor-pointer bg-transparent border-none"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+            </button>
+
+            {/* Center: Clickable form title rename */}
+            <div className="flex items-center gap-2 max-w-md">
+              {isEditingTitle ? (
+                <input
+                  type="text"
+                  value={editedTitleVal}
+                  onChange={(e) => setEditedTitleVal(e.target.value)}
+                  onBlur={handleTitleSubmit}
+                  onKeyDown={(e) => e.key === "Enter" && handleTitleSubmit()}
+                  autoFocus
+                  className="bg-[#0F0F0F] border border-[#FF6B35]/50 px-3 py-1 text-sm font-bold text-white focus:outline-none rounded-lg"
+                />
+              ) : (
+                <button
+                  onClick={() => setIsEditingTitle(true)}
+                  className="group flex items-center gap-2 text-sm font-bold tracking-tight text-white hover:text-[#FF6B35] transition-colors duration-200 bg-transparent border-none cursor-pointer"
+                >
+                  <span>{currentForm?.title || "Conversational Form Builder"}</span>
+                  <Edit3 className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-[#666]" />
+                </button>
+              )}
+            </div>
+
+            {/* Right side: Export & dropdown actions */}
+            <div className="flex items-center gap-3 relative">
+              <button
+                type="button"
+                onClick={handleDownloadCSV}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold border border-[#FF6B35]/20 hover:border-[#FF6B35]/60 hover:bg-[#FF6B35]/10 text-[#FF6B35] h-9 px-4 transition-all duration-200 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 mr-1.5" /> Export
+              </button>
+
+              {/* Profile icon at the absolute right */}
+              {mounted && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    className="h-9 w-9 flex items-center justify-center border-none transition-all duration-200 cursor-pointer rounded-full bg-[#0F0F0F]"
+                    title="User Profile Menu"
+                  >
+                    <UserIcon className="w-4 h-4 text-[#FF6B35]" />
+                  </button>
+
+                  {showProfileMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-[#161616] border border-[#1F1F1F] rounded-xl shadow-2xl z-50 flex flex-col p-1.5 animate-fade-in">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          setShowPublishPanel(true);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-semibold text-[#A1A1A1] hover:text-white hover:bg-[#1E1E1E] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors duration-200"
+                      >
+                        <Sliders className="w-3.5 h-3.5 text-[#FF6B35]" /> Settings
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          setTheme(theme === "dark" ? "light" : "dark");
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-semibold text-[#A1A1A1] hover:text-white hover:bg-[#1E1E1E] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors duration-200"
+                      >
+                        <UserIcon className="w-3.5 h-3.5 text-[#FF6B35]" /> Switch Modes
+                      </button>
+                      <div className="border-t border-[#1F1F1F] w-full my-1.5"></div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          handleLogout();
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors duration-200"
+                      >
+                        <LogOut className="w-3.5 h-3.5" /> Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Hairline separate divider */}
+          <div className="border-t border-[#1F1F1F] w-full"></div>
+
+          {/* Row 2 */}
+          <div className="flex items-center justify-between">
+            {/* Left side tabs: Builder, Analytics, Settings */}
+            <div className="flex bg-[#0F0F0F] p-1 rounded-lg shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab("build")}
-                className={`px-4 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer border-none ${
+                className={`px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer rounded-md border-none ${
                   activeTab === "build"
-                    ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
-                    : "bg-transparent text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    ? "bg-[#FF6B35] text-white"
+                    : "bg-transparent text-[#A1A1A1] hover:text-white hover:bg-[#1C1C1C]"
                 }`}
               >
                 Builder
@@ -1022,17 +1185,29 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
               <button
                 type="button"
                 onClick={() => setActiveTab("analytics")}
-                className={`px-4 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer border-none ${
+                className={`px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer rounded-md border-none ${
                   activeTab === "analytics"
-                    ? "bg-neutral-900 text-white dark:bg-white dark:text-black"
-                    : "bg-transparent text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    ? "bg-[#FF6B35] text-white"
+                    : "bg-transparent text-[#A1A1A1] hover:text-white hover:bg-[#1C1C1C]"
                 }`}
               >
                 Analytics
               </button>
+              <button
+                type="button"
+                onClick={() => setShowPublishPanel(true)}
+                className="px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer rounded-md border-none bg-transparent text-[#A1A1A1] hover:text-white hover:bg-[#1C1C1C]"
+              >
+                Settings
+              </button>
             </div>
-            {activeTab === "build" ? (
-              <>
+
+            {/* Right side: Preview and time stamp */}
+            <div className="flex items-center gap-4">
+              <span className="text-[11px] text-[#666] tracking-wide font-medium hidden sm:inline">
+                Last updated 2 min ago
+              </span>
+              {activeTab === "build" && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1044,37 +1219,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     setPreviewStepIndex(0);
                     setPreviewAnswers({});
                   }}
-                  className={`${buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                  className="h-9 px-4 text-xs flex items-center gap-1.5 bg-[#0F0F0F] hover:bg-[#1C1C1C] text-white rounded-lg transition-all duration-200 border-none cursor-pointer"
                 >
-                  <Eye className="w-3.5 h-3.5 text-neutral-900 dark:text-neutral-100" /> Preview
+                  <Eye className="w-3.5 h-3.5 text-[#A1A1A1]" /> Preview
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className={`${buttonPrimaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  {isSaving ? "Saving…" : "Save Changes"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowPublishPanel(true)}
-                  className={`${publishStatus ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  {publishStatus ? "Published" : "Publish"}
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={handleDownloadCSV}
-                className={`${buttonPrimaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
-              >
-                <Download className="w-3.5 h-3.5" /> Download Responses
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </nav>
 
@@ -1085,13 +1235,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
             onClick={() => setShowPublishPanel(false)}
           >
             <div
-              className="bg-background border-2 border-neutral-900 dark:border-neutral-100 w-full max-w-md flex flex-col gap-0 shadow-2xl"
+              className="bg-background border border-border w-full max-w-md flex flex-col gap-0 shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="border-b-2 border-neutral-900 dark:border-neutral-100 px-6 py-4 flex items-center justify-between">
+              <div className="border-b-2 border-neutral-900  px-6 py-4 flex items-center justify-between">
                 <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                  <ExternalLink className="w-4 h-4 text-amber-500" /> Publish & Share
+                  <ExternalLink className="w-4 h-4 text-orange-500" /> Publish & Share
                 </h2>
                 <button onClick={() => setShowPublishPanel(false)} className="text-muted-foreground hover:text-foreground text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none">✕</button>
               </div>
@@ -1124,7 +1274,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                         key={v}
                         type="button"
                         onClick={() => setPublishVisibility(v)}
-                        className={`border-2 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${publishVisibility === v ? "border-neutral-900 dark:border-neutral-100 bg-neutral-900 text-white dark:bg-white dark:text-black" : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-600"}`}
+                        className={`border-2 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${publishVisibility === v ? "border-neutral-900  bg-neutral-900 text-white dark:bg-white dark:text-primary-foreground" : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-600"}`}
                       >
                         {v}
                       </button>
@@ -1183,14 +1333,14 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                       <button
                         type="button"
                         onClick={() => setShareTab("link")}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "link" ? "bg-neutral-900 text-white dark:bg-white dark:text-black" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "link" ? "bg-neutral-900 text-white dark:bg-white dark:text-primary-foreground" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
                       >
                         <LinkIcon className="w-3 h-3" /> Link
                       </button>
                       <button
                         type="button"
                         onClick={() => setShareTab("qr")}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "qr" ? "bg-neutral-900 text-white dark:bg-white dark:text-black" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "qr" ? "bg-neutral-900 text-white dark:bg-white dark:text-primary-foreground" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
                       >
                         <QrCode className="w-3 h-3" /> QR Code
                       </button>
@@ -1252,52 +1402,62 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
           {/* Left Column: Slides Map */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div className={cardClass}>
-              <div className="border-b-2 border-neutral-900 dark:border-neutral-100 pb-3 flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-tight flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" /> Slides
-                </h3>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-muted-foreground">
-                  {topLevelQuestions.length} Step{topLevelQuestions.length !== 1 ? 's' : ''}
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[14px] font-semibold text-foreground flex items-center gap-1.5">
+                  <ListIcon className="w-3.5 h-3.5 text-primary" /> Slides
+                </span>
+                <span className="text-[12px] font-medium text-text-secondary">
+                  {topLevelQuestions.length} step{topLevelQuestions.length !== 1 ? 's' : ''}
                 </span>
               </div>
 
+              <div className="border-t border-border w-full my-1"></div>
+
               {topLevelQuestions.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center py-4">
-                  No slides
-                </p>
+                <div className="flex flex-col items-center justify-center py-8">
+                  <p className="text-[10px] text-text-tertiary uppercase tracking-wider text-center">
+                    No slides
+                  </p>
+                </div>
               ) : (
-                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
                   {topLevelQuestions.map((q, idx) => (
                     <button
                       key={q.id || q.clientTempId}
                       onClick={() => setActiveIdx(idx)}
-                      className={`w-full text-left border-2 p-2 flex items-center gap-2 transition-all rounded-none group cursor-pointer ${
+                      className={`w-full text-left border flex flex-col transition-all duration-300 rounded-lg cursor-pointer origin-center animate-in fade-in slide-in-from-bottom duration-300 ease-out ${
                         activeIdx === idx 
-                          ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-black" 
-                          : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-950"
+                          ? "border-primary bg-primary/5 shadow-md shadow-primary/10 p-3 min-h-[5.2rem] justify-between gap-1.5" 
+                          : "border-border hover:border-border-active bg-card hover:bg-surface-hover hover:scale-[1.01] hover:shadow-md hover:bg-surface-hover/80 hover:shadow-black/20 p-2.5 min-h-[3.2rem] justify-center gap-0.5"
                       }`}
                     >
-                      <div className={`w-5 h-5 shrink-0 flex items-center justify-center font-extrabold text-[10px] rounded-none group-hover:scale-110 transition-transform ${
-                        activeIdx === idx 
-                          ? "bg-white text-black dark:bg-black dark:text-white" 
-                          : "bg-neutral-900 text-white dark:bg-white dark:text-black"
+                      <span className={`text-[12px] font-medium uppercase tracking-wider ${
+                        activeIdx === idx ? "text-primary" : "text-text-tertiary"
                       }`}>
                         {idx + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-tight truncate">
-                          {q.label || `Untitled`}
-                        </p>
-                        <p className={`text-[8px] font-semibold uppercase tracking-widest mt-0.5 ${
-                          activeIdx === idx ? "text-neutral-300 dark:text-neutral-700" : "text-muted-foreground"
-                        }`}>
-                          {q.fieldType.replace("_", " ")}
-                        </p>
-                      </div>
+                      </span>
+                      <p className={`font-bold uppercase tracking-tight text-foreground leading-tight ${
+                        activeIdx === idx ? "text-xs line-clamp-2" : "text-[10px] line-clamp-1"
+                      }`}>
+                        {q.label || `Untitled Slide`}
+                      </p>
+                      {activeIdx === idx && (
+                        <span className="text-[8px] font-black uppercase tracking-widest text-text-tertiary mt-0.5 animate-fade-in">
+                          {q.fieldType.replace("_", " ").toLowerCase()}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
               )}
+
+              <button
+                type="button"
+                onClick={() => setShowAddContent(true)}
+                className="w-full py-2 border border-dashed border-border hover:border-primary/50 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-primary transition-all duration-200 rounded-lg flex items-center justify-center gap-1 bg-transparent cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Step
+              </button>
             </div>
           </div>
 
@@ -1305,9 +1465,11 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
           <div className="lg:col-span-7 flex flex-col gap-6">
             
             {/* Top Toolbar */}
-            <div className="flex items-center justify-between border-2 border-neutral-900 dark:border-neutral-100 bg-background px-6 py-4">
+            <div className="flex items-center justify-between border border-border bg-background px-6 py-4 shadow-sm">
               <div>
-                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Conversational Canvas</h2>
+                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  {currentForm?.title || "Conversational Canvas"}
+                </h2>
               </div>
               <button
                 type="button"
@@ -1332,7 +1494,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
             {/* Conversational Live Slide Preview */}
             {topLevelQuestions.length === 0 ? (
-              <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 py-20 px-6 flex flex-col items-center justify-center gap-4 text-center bg-neutral-50/20 dark:bg-neutral-950/20">
+              <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 py-20 px-6 flex flex-col items-center justify-center gap-4 text-center bg-neutral-50/20 dark:bg-secondary/50">
                 <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">
                   Your form is empty
                 </p>
@@ -1349,30 +1511,31 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
               </div>
             ) : (
               activeQuestion && (
-                <div className={cardClass}>
+              <div className="flex flex-col gap-4">
+                <div className={`${cardClass} transition-all duration-200`}>
                   {/* Slide Header */}
-                  <div className="flex items-center justify-between border-b-2 border-neutral-900 dark:border-neutral-100 pb-4 mb-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-neutral-900 text-white dark:bg-white dark:text-black">
+                  <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+                    <span className="text-[12px] font-medium text-text-tertiary uppercase tracking-wider">
                       Slide {activeIdx + 1} of {topLevelQuestions.length}
                     </span>
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping inline-block" />}
-                      {activeQuestion.fieldType.replace("_", " ")}
+                    <span className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                      {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping inline-block" />}
+                      {activeQuestion.fieldType.replace("_", " ").toLowerCase()}
                     </span>
                   </div>
 
                   {/* Typeform Live Slide Preview Canvas */}
-                  <div className="flex flex-col gap-6 py-20 px-10 bg-neutral-50 dark:bg-neutral-950/40 border-2 border-dashed border-neutral-300 dark:border-neutral-700 min-h-[48vh] justify-center">
+                  <div className="flex flex-col gap-6 py-20 px-10 bg-background/30 border border-dashed border-border rounded-lg min-h-[48vh] justify-center relative">
                     <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
                       
                       {/* Live editable question title & description */}
                       {activeQuestion.fieldType === "THANK_YOU" ? (
                         <div className="flex flex-col items-center justify-center text-center py-8 w-full animate-fade-in">
-                          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">
+                          <h1 className="text-[32px] font-bold text-foreground leading-tight uppercase">
                             Thank You!
                           </h1>
                           {activeQuestion.description && (
-                            <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed whitespace-pre-wrap mt-4 max-w-lg">
+                            <p className="text-[16px] font-normal text-text-secondary leading-relaxed whitespace-pre-wrap mt-4 max-w-lg">
                               {activeQuestion.description}
                             </p>
                           )}
@@ -1380,23 +1543,23 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                       ) : (
                         <>
                           {/* Live editable question title */}
-                          <div className="flex flex-col gap-1 items-start w-full">
-                            <label className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-widest flex items-center gap-1">
-                              Edit Question Label <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                            </label>
+                          <div className="flex flex-col gap-1 items-start w-full group relative">
+                            <span className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none select-none">
+                              <Sliders className="w-3 h-3" /> Edit question label
+                            </span>
                             <div className="relative inline-block w-full max-w-full">
                               {/* Invisible mirror span to measure text width & height for wrapping */}
-                              <span className="invisible whitespace-pre-wrap break-words text-2xl md:text-3xl font-black uppercase tracking-tight px-1 select-none pointer-events-none block min-h-[3rem] pb-2 w-full">
+                              <span className="invisible whitespace-pre-wrap break-words text-[32px] font-bold px-1 select-none pointer-events-none block min-h-[3.5rem] pb-2 w-full leading-tight">
                                 {activeQuestion.label || "Enter question title..."}
                               </span>
                               <textarea
                                 value={activeQuestion.label}
                                 onChange={(e) => updateQuestion(activeAbsoluteIdx, { label: e.target.value })}
-                                className="absolute inset-0 text-2xl md:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 focus:border-neutral-950 dark:focus:border-neutral-100 transition-colors w-full focus-visible:outline-none py-1 leading-tight uppercase tracking-tight text-neutral-900 dark:text-neutral-100 pr-8 resize-none overflow-hidden"
+                                className="absolute inset-0 text-[32px] font-bold bg-transparent border-b border-transparent hover:border-border-active focus:border-primary transition-colors w-full focus-visible:outline-none py-1 leading-tight text-foreground pr-8 resize-none overflow-hidden"
                                 placeholder="Enter question title..."
                               />
                               {activeQuestion.isRequired && (
-                                <span className="absolute -top-1 -right-2.5 text-red-500 font-extrabold text-2xl select-none" title="Required Field">
+                                <span className="absolute -top-1 -right-2.5 text-error font-extrabold text-2xl select-none" title="Required Field">
                                   *
                                 </span>
                               )}
@@ -1405,7 +1568,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                           {/* Live question description preview */}
                           {activeQuestion.description && (
-                            <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 font-bold border-l-2 border-amber-500 pl-3 -mt-2 max-w-2xl animate-fade-in whitespace-pre-wrap leading-relaxed">
+                            <p className="text-[16px] font-normal text-text-secondary leading-relaxed max-w-2xl animate-fade-in whitespace-pre-wrap mt-2">
                               {activeQuestion.description}
                             </p>
                           )}
@@ -1433,13 +1596,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                         {/* 2. LONG_TEXT */}
                         {activeQuestion.fieldType === "LONG_TEXT" && (
                           <div className="flex flex-col gap-2">
-                            <textarea
-                              placeholder={activeQuestion.placeholder || "Type your long paragraph answer here..."}
-                              className="text-lg bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 focus:border-neutral-900 dark:focus:border-neutral-100 py-3 w-full focus-visible:outline-none transition-colors min-h-24 resize-none"
-                              disabled
-                            />
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                              Shift + Enter for new line
+                            <div className="border border-border rounded-lg p-4 bg-background/50 w-full min-h-24">
+                              <p className="text-sm text-text-tertiary select-none">
+                                {activeQuestion.placeholder || "Type your long response here..."}
+                              </p>
+                            </div>
+                            <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mt-1.5">
+                              shift + enter for new line
                             </span>
                           </div>
                         )}
@@ -1491,15 +1654,15 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           <div className="flex flex-wrap gap-4 mt-2">
                             <button
                               type="button"
-                              className="border-2 border-neutral-900 dark:border-neutral-100 px-6 py-3 font-bold uppercase tracking-widest hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors flex items-center gap-3 text-sm cursor-default bg-background"
+                              className="border border-border px-6 py-3 font-bold uppercase tracking-widest hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors flex items-center gap-3 text-sm cursor-default bg-background"
                             >
-                              <span className="bg-neutral-950 text-white dark:bg-white dark:text-black w-5 h-5 text-[10px] flex items-center justify-center font-extrabold">Y</span> Yes
+                              <span className="bg-neutral-950 text-white dark:bg-white dark:text-primary-foreground w-5 h-5 text-[10px] flex items-center justify-center font-extrabold">Y</span> Yes
                             </button>
                             <button
                               type="button"
-                              className="border-2 border-neutral-900 dark:border-neutral-100 px-6 py-3 font-bold uppercase tracking-widest hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors flex items-center gap-3 text-sm cursor-default bg-background"
+                              className="border border-border px-6 py-3 font-bold uppercase tracking-widest hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors flex items-center gap-3 text-sm cursor-default bg-background"
                             >
-                              <span className="bg-neutral-950 text-white dark:bg-white dark:text-black w-5 h-5 text-[10px] flex items-center justify-center font-extrabold">N</span> No
+                              <span className="bg-neutral-950 text-white dark:bg-white dark:text-primary-foreground w-5 h-5 text-[10px] flex items-center justify-center font-extrabold">N</span> No
                             </button>
                           </div>
                         )}
@@ -1543,16 +1706,16 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                 <button
                                   type="button"
                                   onClick={() => setIsPhoneDropdownOpen(!isPhoneDropdownOpen)}
-                                  className="text-xs font-black px-2.5 py-1.5 border-2 border-neutral-900 dark:border-neutral-100 text-neutral-900 dark:text-neutral-100 tracking-widest bg-background rounded-none flex items-center gap-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-900 cursor-pointer min-w-[95px] justify-between uppercase transition-colors"
+                                  className="text-xs font-black px-2.5 py-1.5 border border-border text-neutral-900 dark:text-neutral-100 tracking-widest bg-background rounded-md flex items-center gap-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-900 cursor-pointer min-w-[95px] justify-between uppercase transition-colors"
                                 >
                                   <span>{selectedPhoneCountry.flag} {selectedPhoneCountry.code}</span>
-                                  <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-bold">{selectedPhoneCountry.dialCode}</span>
+                                  <span className="text-[10px] text-neutral-500 dark:text-muted-foreground font-bold">{selectedPhoneCountry.dialCode}</span>
                                 </button>
 
                                 {/* Search Popover Menu */}
                                 {isPhoneDropdownOpen && (
                                   <div 
-                                    className="absolute top-full left-0 mt-1.5 z-30 w-64 border-2 border-neutral-900 dark:border-neutral-100 bg-background shadow-2xl p-2.5 flex flex-col gap-2 animate-fade-in max-h-64"
+                                    className="absolute top-full left-0 mt-1.5 z-30 w-64 border border-border bg-background shadow-2xl p-2.5 flex flex-col gap-2 animate-fade-in max-h-64"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <input
@@ -1561,7 +1724,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                       value={phoneSearchQuery}
                                       onChange={(e) => setPhoneSearchQuery(e.target.value)}
                                       placeholder="Type country name or code..."
-                                      className="w-full text-xs border-2 border-neutral-900 dark:border-neutral-100 px-2 py-1.5 focus-visible:outline-none rounded-none bg-background text-neutral-900 dark:text-neutral-100 font-bold"
+                                      className="w-full text-xs border border-border px-2 py-1.5 focus-visible:outline-none rounded-md bg-background text-neutral-900 dark:text-neutral-100 font-bold"
                                     />
                                     
                                     <div className="flex flex-col gap-0.5 overflow-y-auto max-h-40 pr-1 border-t border-neutral-200 dark:border-neutral-800 pt-1.5">
@@ -1585,12 +1748,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                               setIsPhoneDropdownOpen(false);
                                               setPhoneSearchQuery("");
                                             }}
-                                            className="w-full text-left px-2 py-1.5 text-xs hover:bg-neutral-900 hover:text-white dark:hover:bg-neutral-100 dark:hover:text-black flex items-center justify-between transition-colors rounded-none cursor-pointer bg-background border-none text-neutral-900 dark:text-neutral-100"
+                                            className="w-full text-left px-2 py-1.5 text-xs hover:bg-neutral-900 hover:text-white dark:hover:bg-secondary dark:hover:text-black flex items-center justify-between transition-colors rounded-md cursor-pointer bg-background border-none text-neutral-900 dark:text-neutral-100"
                                           >
                                             <span className="font-bold uppercase tracking-tight truncate max-w-[130px]">
                                               {c.flag} {c.name}
                                             </span>
-                                            <span className="text-[9px] text-neutral-500 dark:text-neutral-400 font-black">
+                                            <span className="text-[9px] text-neutral-500 dark:text-muted-foreground font-black">
                                               ({c.code}) {c.dialCode}
                                             </span>
                                           </button>
@@ -1625,9 +1788,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             {getQuestionChoices(activeQuestion).map((opt, oIdx) => (
                               <div
                                 key={opt + "_" + oIdx}
-                                className="border-2 border-neutral-900 dark:border-neutral-100 p-3 font-bold uppercase tracking-wide flex items-center gap-3 text-xs bg-background max-w-md animate-fade-in"
+                                className="border border-border p-3 font-bold uppercase tracking-wide flex items-center gap-3 text-xs bg-background max-w-md animate-fade-in"
                               >
-                                <span className="bg-neutral-950 text-white dark:bg-white dark:text-black w-5 h-5 text-[9px] flex items-center justify-center font-black shrink-0">
+                                <span className="bg-neutral-950 text-white dark:bg-white dark:text-primary-foreground w-5 h-5 text-[9px] flex items-center justify-center font-black shrink-0">
                                   {String.fromCharCode(65 + oIdx)}
                                 </span>
                                 {opt}
@@ -1660,7 +1823,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             <button
                               type="button"
                               onClick={() => setIsDropdownPreviewOpen(!isDropdownPreviewOpen)}
-                              className="w-full flex items-center justify-between border-2 border-neutral-900 dark:border-neutral-100 p-3 text-xs font-black uppercase tracking-widest bg-background hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors cursor-pointer rounded-none text-left text-neutral-900 dark:text-neutral-100"
+                              className="w-full flex items-center justify-between border border-border p-3 text-xs font-black uppercase tracking-widest bg-background hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors cursor-pointer rounded-md text-left text-neutral-900 dark:text-neutral-100"
                             >
                               <span>
                                 {selectedDropdownValue || "Select an option..."}
@@ -1671,7 +1834,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             {/* Dropdown Options Popover Menu */}
                             {isDropdownPreviewOpen && (
                               <div 
-                                className="absolute top-full left-0 mt-1 z-20 w-full border-2 border-neutral-900 dark:border-neutral-100 bg-background shadow-2xl p-1 flex flex-col gap-0.5 max-h-48 overflow-y-auto animate-fade-in"
+                                className="absolute top-full left-0 mt-1 z-20 w-full border border-border bg-background shadow-2xl p-1 flex flex-col gap-0.5 max-h-48 overflow-y-auto animate-fade-in"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {getQuestionChoices(activeQuestion).map((opt, oIdx) => (
@@ -1682,7 +1845,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                       setSelectedDropdownValue(opt);
                                       setIsDropdownPreviewOpen(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 text-xs font-bold uppercase tracking-wider hover:bg-neutral-900 hover:text-white dark:hover:bg-neutral-100 dark:hover:text-black transition-colors rounded-none cursor-pointer bg-background border-none text-neutral-900 dark:text-neutral-100"
+                                    className="w-full text-left px-3 py-2 text-xs font-bold uppercase tracking-wider hover:bg-neutral-900 hover:text-white dark:hover:bg-secondary dark:hover:text-black transition-colors rounded-md cursor-pointer bg-background border-none text-neutral-900 dark:text-neutral-100"
                                   >
                                     {opt}
                                   </button>
@@ -1698,15 +1861,15 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           const percent = max > min ? Math.min(100, Math.max(0, ((previewSliderValue - min) / (max - min)) * 100)) : 0;
                           return (
                             <div className="flex flex-col gap-4 mt-6 max-w-md w-full animate-fade-in">
-                              <div className="relative w-full h-4 border-2 border-neutral-900 dark:border-neutral-100 bg-neutral-100 dark:bg-neutral-900 select-none">
+                              <div className="relative w-full h-4 border border-border bg-neutral-100 dark:bg-neutral-900 select-none">
                                 {/* Filled progress bar */}
                                 <div 
-                                  className="absolute left-0 top-0 bottom-0 bg-amber-500 dark:bg-amber-400 border-r-2 border-neutral-900 dark:border-neutral-100" 
+                                  className="absolute left-0 top-0 bottom-0 bg-primary dark:bg-primary border-r-2 border-neutral-900 " 
                                   style={{ width: `${percent}%` }}
                                 />
                                 {/* Custom Rotated Diamond Thumb */}
                                 <div 
-                                  className="absolute top-1/2 -translate-y-1/2 w-6 h-6 border-2 border-neutral-900 dark:border-neutral-100 bg-neutral-900 dark:bg-neutral-100 rotate-45 shadow-md flex items-center justify-center pointer-events-none"
+                                  className="absolute top-1/2 -translate-y-1/2 w-6 h-6 border border-border bg-neutral-900 dark:bg-neutral-100 rotate-45 shadow-md flex items-center justify-center pointer-events-none"
                                   style={{ left: `calc(${percent}% - 12px)` }}
                                 >
                                   {/* Tiny inner dot/diamond */}
@@ -1729,7 +1892,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                 <span className="border border-neutral-300 dark:border-neutral-700 px-2 py-0.5 bg-neutral-50 dark:bg-neutral-950">
                                   {min} (Min)
                                 </span>
-                                <span className="text-xs text-amber-600 dark:text-amber-400 font-extrabold bg-neutral-900 text-white dark:bg-white dark:text-black px-2.5 py-0.5 rounded-none border border-neutral-900 dark:border-white">
+                                <span className="text-xs text-orange-600 dark:text-orange-400 font-extrabold bg-neutral-900 text-white dark:bg-white dark:text-primary-foreground px-2.5 py-0.5 rounded-md border border-neutral-900 dark:border-white">
                                   Value: {previewSliderValue}
                                 </span>
                                 <span className="border border-neutral-300 dark:border-neutral-700 px-2 py-0.5 bg-neutral-50 dark:bg-neutral-950">
@@ -1743,8 +1906,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                         {/* 14. CONTACT_INFO & 15. ADDRESS (Dynamic nested sub-questions layout configuration) */}
                         {(activeQuestion.fieldType === "CONTACT_INFO" || activeQuestion.fieldType === "ADDRESS") && (
                           <div className="flex flex-col gap-6 w-full">
-                            <div className="flex flex-col gap-4 border-2 border-neutral-900 dark:border-neutral-100 p-5 bg-background">
-                              <h4 className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b pb-2 mb-2">
+                            <div className="flex flex-col gap-4 border border-border p-5 bg-background">
+                              <h4 className="text-xs font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 border-b pb-2 mb-2">
                                 Sub Fields Configuration
                               </h4>
                               {activeChildren.length === 0 ? (
@@ -1760,10 +1923,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                       <div key={child.id || child.clientTempId} className="border-2 border-neutral-200 dark:border-neutral-800 p-4 flex flex-col gap-3 relative bg-neutral-50/50 dark:bg-neutral-900/30 text-neutral-900 dark:text-neutral-100">
                                         <div className="flex justify-between items-center border-b border-neutral-200 dark:border-neutral-800 pb-2">
                                           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                                            {child.fieldType === "EMAIL" && <Mail className="w-3.5 h-3.5 text-amber-500" />}
-                                            {child.fieldType === "PHONE" && <PhoneIcon className="w-3.5 h-3.5 text-amber-500" />}
-                                            {child.fieldType === "SHORT_TEXT" && <Type className="w-3.5 h-3.5 text-amber-500" />}
-                                            {child.fieldType === "WEBSITE" && <GlobeIcon className="w-3.5 h-3.5 text-amber-500" />}
+                                            {child.fieldType === "EMAIL" && <Mail className="w-3.5 h-3.5 text-orange-500" />}
+                                            {child.fieldType === "PHONE" && <PhoneIcon className="w-3.5 h-3.5 text-orange-500" />}
+                                            {child.fieldType === "SHORT_TEXT" && <Type className="w-3.5 h-3.5 text-orange-500" />}
+                                            {child.fieldType === "WEBSITE" && <GlobeIcon className="w-3.5 h-3.5 text-orange-500" />}
                                             {child.fieldType}
                                           </span>
                                           <button
@@ -1809,7 +1972,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   onClick={() => handleAddSubQuestion(activeAbsoluteIdx === -1 ? "" : (activeQuestion.id || activeQuestion.clientTempId || ""), activeChildren.length)}
                                   className={`${buttonSecondaryClass} h-8 text-[10px] tracking-wider py-1 font-extrabold flex items-center justify-center gap-1.5`}
                                 >
-                                  <Plus className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Add Text Sub-Field
+                                  <Plus className="w-3.5 h-3.5 text-orange-500 shrink-0" /> Add Text Sub-Field
                                 </button>
                                 <button
                                   type="button"
@@ -1834,7 +1997,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   }}
                                   className={`${buttonSecondaryClass} h-8 text-[10px] tracking-wider py-1 font-extrabold flex items-center justify-center gap-1.5`}
                                 >
-                                  <Plus className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Add Email Sub-Field
+                                  <Plus className="w-3.5 h-3.5 text-orange-500 shrink-0" /> Add Email Sub-Field
                                 </button>
                                 <button
                                   type="button"
@@ -1859,7 +2022,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   }}
                                   className={`${buttonSecondaryClass} h-8 text-[10px] tracking-wider py-1 font-extrabold flex items-center justify-center gap-1.5`}
                                 >
-                                  <Plus className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Add Phone Sub-Field
+                                  <Plus className="w-3.5 h-3.5 text-orange-500 shrink-0" /> Add Phone Sub-Field
                                 </button>
                                 <button
                                   type="button"
@@ -1884,7 +2047,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   }}
                                   className={`${buttonSecondaryClass} h-8 text-[10px] tracking-wider py-1 font-extrabold flex items-center justify-center gap-1.5`}
                                 >
-                                  <Plus className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Add Website Sub-Field
+                                  <Plus className="w-3.5 h-3.5 text-orange-500 shrink-0" /> Add Website Sub-Field
                                 </button>
                               </div>
                             </div>
@@ -1893,7 +2056,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 16. IMAGE */}
                         {activeQuestion.fieldType === "IMAGE" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-md">
+                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-secondary/30 max-w-md">
                             <ImageIcon className="w-8 h-8 text-neutral-400" />
                             <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Image File</span>
                             <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Drag and drop or browse files</span>
@@ -1902,7 +2065,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 17. VIDEO */}
                         {activeQuestion.fieldType === "VIDEO" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-md">
+                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-secondary/30 max-w-md">
                             <VideoIcon className="w-8 h-8 text-neutral-400" />
                             <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Video Attachment</span>
                             <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports MP4, WebM up to 10MB</span>
@@ -1911,7 +2074,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 18. AUDIO */}
                         {activeQuestion.fieldType === "AUDIO" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-md">
+                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-secondary/30 max-w-md">
                             <AudioIcon className="w-8 h-8 text-neutral-400" />
                             <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Record Live or Upload sound</span>
                             <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports MP3, WAV, WebM up to 10MB</span>
@@ -1920,7 +2083,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 19. FILE */}
                         {activeQuestion.fieldType === "FILE" && (
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-neutral-900/20 max-w-md">
+                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50 dark:bg-secondary/30 max-w-md">
                             <FileIcon className="w-8 h-8 text-neutral-400" />
                             <span className="text-xs font-black uppercase tracking-widest text-neutral-900 dark:text-neutral-100">Upload Document attachment</span>
                             <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Supports PDF up to 200KB</span>
@@ -1931,47 +2094,69 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     </div>
                   </div>
                 </div>
-              )
+
+                <div className="flex justify-center mt-2 animate-fade-in">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddContent(true)}
+                    className="py-2.5 px-6 border border-dashed border-border hover:border-primary/50 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-primary transition-all duration-200 rounded-lg flex items-center justify-center gap-1.5 bg-transparent cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Content
+                  </button>
+                </div>
+              </div>
+            )
             )}
           </div>
 
           {/* Right Column: Slide Settings */}
           <div className="lg:col-span-3 flex flex-col gap-4">
             {activeQuestion && (
-              <div className={cardClass}>
-                <div className="border-b-2 border-neutral-900 dark:border-neutral-100 pb-3">
-                  <h3 className="text-sm font-black uppercase tracking-tight flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-500 animate-spin-slow" /> Slide Settings
+              <div className={`${cardClass} border border-border`}>
+                <div className="border-b border-border pb-3 flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">
+                    Slide Settings
                   </h3>
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {/* Required Answer Toggle */}
-                  <label className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider cursor-pointer border-2 border-neutral-200 dark:border-neutral-800 p-3 hover:border-neutral-900 dark:hover:border-neutral-100 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={activeQuestion.isRequired}
-                      onChange={(e) => updateQuestion(activeAbsoluteIdx, { isRequired: e.target.checked })}
-                      className="w-4 h-4 border-2 border-neutral-900 rounded-none bg-background accent-neutral-900 cursor-pointer"
-                    />
-                    Required Field
-                  </label>
+                  {/* Required Answer Toggle Switch (iOS Style) */}
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-xs font-semibold text-text-secondary">Required field</span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuestion(activeAbsoluteIdx, { isRequired: !activeQuestion.isRequired })}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        activeQuestion.isRequired ? "bg-primary" : "bg-secondary"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          activeQuestion.isRequired ? "translate-x-4" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Hairline Divider */}
+                  <div className="border-t border-border w-full"></div>
 
                   {/* Custom Placeholder/Option Editor Fields */}
                   {["MULTIPLE_CHOICE", "CHECKBOX", "DROPDOWN"].includes(activeQuestion.fieldType) ? (
-                    <div className="flex flex-col gap-3 border-2 border-neutral-200 dark:border-neutral-800 p-3 bg-neutral-50/20 dark:bg-neutral-950/20">
-                      <div className="border-b border-neutral-200 dark:border-neutral-800 pb-1.5 flex items-center justify-between">
-                        <label className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                          <ListIcon className="w-3.5 h-3.5 text-amber-500 animate-pulse" /> Configure Options
+                    <div className="flex flex-col gap-3 border border-border p-3 bg-background/50 rounded-lg">
+                      <div className="border-b border-border pb-1.5 flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
+                          Configure Options
                         </label>
-                        <span className="text-[9px] font-bold text-muted-foreground bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5">
+                        <span className="text-[9px] font-bold text-text-secondary bg-secondary px-1.5 py-0.5 rounded">
                           {getQuestionChoices(activeQuestion).length} Item{getQuestionChoices(activeQuestion).length !== 1 ? 's' : ''}
                         </span>
                       </div>
                       <div className="flex flex-col gap-2 max-h-[30vh] overflow-y-auto pr-1">
                         {getQuestionChoices(activeQuestion).map((choice, cIdx) => (
                           <div key={cIdx} className="flex gap-2 items-center">
-                            <span className="bg-neutral-900 text-white dark:bg-white dark:text-black w-6 h-6 text-[10px] flex items-center justify-center font-black shrink-0">
+                            <span className="bg-primary text-primary-foreground w-6 h-6 text-[10px] flex items-center justify-center font-black shrink-0 rounded">
                               {String.fromCharCode(65 + cIdx)}
                             </span>
                             <input
@@ -1983,12 +2168,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                 }
                               }}
                               placeholder={`Option ${String.fromCharCode(65 + cIdx)}`}
-                              className={`${inputClass} h-8 text-xs py-1`}
+                              className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-xs text-foreground placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                             />
                             <button
                               type="button"
                               onClick={() => handleDeleteChoice(activeAbsoluteIdx, cIdx)}
-                              className="text-red-500 hover:text-red-700 shrink-0 p-1 cursor-pointer hover:scale-110 transition-transform bg-transparent border-none"
+                              className="text-error hover:text-error/80 shrink-0 p-1 cursor-pointer hover:scale-105 transition-transform bg-transparent border-none"
                               title="Remove Option"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1999,16 +2184,16 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                       <button
                         type="button"
                         onClick={() => handleAddChoice(activeAbsoluteIdx)}
-                        className={`${buttonSecondaryClass} h-8 text-[10px] tracking-wider py-1 font-extrabold flex items-center justify-center gap-1.5`}
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-[10px] font-bold tracking-wider py-1.5 bg-card text-foreground border border-border hover:bg-surface-hover transition-colors gap-1 cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" /> Add Option
+                        <Plus className="w-3.5 h-3.5 text-primary shrink-0" /> Add Option
                       </button>
                     </div>
                   ) : activeQuestion.fieldType === "SLIDER" ? (
-                    <div className="flex flex-col gap-3 border-2 border-neutral-200 dark:border-neutral-800 p-3 bg-neutral-50/20 dark:bg-neutral-950/20">
-                      <div className="border-b border-neutral-200 dark:border-neutral-800 pb-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                          <Sliders className="w-3.5 h-3.5 text-amber-500 animate-pulse" /> Range Limits
+                    <div className="flex flex-col gap-3 border border-border p-3 bg-background/50 rounded-lg">
+                      <div className="border-b border-border pb-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
+                          Range Limits
                         </label>
                       </div>
                       
@@ -2016,7 +2201,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                         return (
                           <div className="grid grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary">
                                 Min Limit
                               </label>
                               <input
@@ -2050,11 +2235,11 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                     handleUpdateSliderBoundaries(activeAbsoluteIdx, safeMin, max);
                                   }
                                 }}
-                                className={`${inputClass} h-8 text-xs py-1`}
+                                className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-xs text-foreground placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                               />
                             </div>
                             <div className="flex flex-col gap-1">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary">
                                 Max Limit
                               </label>
                               <input
@@ -2067,28 +2252,15 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                     if (val !== "" && val !== "-") {
                                       const newMax = Number(val);
                                       const currentMin = Number(minInputStr);
-                                      if (!isNaN(currentMin) && currentMin >= newMax) {
-                                        toast.error("Minimum limit cannot be greater than or equal to maximum limit.");
+                                      if (!isNaN(currentMin) && newMax <= currentMin) {
+                                        toast.error("Maximum limit cannot be less than or equal to minimum limit.");
                                       } else {
                                         handleUpdateSliderBoundaries(activeAbsoluteIdx, isNaN(currentMin) ? 0 : currentMin, newMax);
                                       }
                                     }
                                   }
                                 }}
-                                onBlur={() => {
-                                  const parsedMax = Number(maxInputStr);
-                                  const { min } = getSliderBoundaries(activeQuestion);
-                                  if (isNaN(parsedMax)) {
-                                    setMaxInputStr("100");
-                                    handleUpdateSliderBoundaries(activeAbsoluteIdx, min, 100);
-                                  } else if (min >= parsedMax) {
-                                    toast.error("Minimum limit cannot be greater than or equal to maximum limit.");
-                                    const safeMax = min + 10;
-                                    setMaxInputStr(safeMax.toString());
-                                    handleUpdateSliderBoundaries(activeAbsoluteIdx, min, safeMax);
-                                  }
-                                }}
-                                className={`${inputClass} h-8 text-xs py-1`}
+                                className="flex h-8 w-full rounded-md border border-border bg-background px-3 py-1 text-xs text-foreground placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                               />
                             </div>
                           </div>
@@ -2097,55 +2269,58 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     </div>
                   ) : ["WELCOME", "THANK_YOU", "INFO"].includes(activeQuestion.fieldType) ? null : (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
                         Placeholder Subtext
                       </label>
                       <input
                         value={activeQuestion.placeholder}
                         onChange={(e) => updateQuestion(activeAbsoluteIdx, { placeholder: e.target.value })}
                         placeholder="e.g. Type your response..."
-                        className={inputClass}
+                        className="flex h-9 w-full rounded-md border border-border bg-background/50 px-3 py-2 text-xs text-foreground placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                       />
                     </div>
                   )}
 
                   {/* Custom Description Field */}
-                  <div className="flex flex-col gap-1.5 border-t border-neutral-200 dark:border-neutral-800 pt-3">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
                       Question Description
                     </label>
                     <textarea
                       value={activeQuestion.description || ""}
                       onChange={(e) => updateQuestion(activeAbsoluteIdx, { description: e.target.value })}
                       placeholder="e.g. Provide optional context, guidelines or details..."
-                      className={`${inputClass} min-h-[5rem] text-xs resize-none`}
+                      className="flex w-full rounded-md border border-border bg-background/50 px-3 py-2 text-xs text-foreground placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors min-h-[5rem] resize-none"
                     />
                   </div>
 
-                  {/* Move & Delete controls */}
-                  <div className="flex gap-2 border-t border-neutral-200 dark:border-neutral-800 pt-3">
+                  {/* Move & Delete controls (Compact Row) */}
+                  <div className="flex gap-2 justify-end border-t border-border pt-4 mt-2">
                     <button
                       type="button"
                       onClick={() => moveQuestion(activeAbsoluteIdx, "up")}
                       disabled={activeIdx === 0}
-                      className={`${buttonSecondaryClass} flex-1 h-9 text-[10px] gap-1 px-1`}
+                      className="h-8 w-8 flex items-center justify-center border border-border bg-card hover:bg-surface-hover text-text-secondary hover:text-foreground disabled:opacity-40 transition-colors rounded cursor-pointer"
+                      title="Move Up"
                     >
-                      <ArrowUp className="w-3.5 h-3.5" /> Up
+                      <ArrowUp className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => moveQuestion(activeAbsoluteIdx, "down")}
                       disabled={activeIdx === topLevelQuestions.length - 1}
-                      className={`${buttonSecondaryClass} flex-1 h-9 text-[10px] gap-1 px-1`}
+                      className="h-8 w-8 flex items-center justify-center border border-border bg-card hover:bg-surface-hover text-text-secondary hover:text-foreground disabled:opacity-40 transition-colors rounded cursor-pointer"
+                      title="Move Down"
                     >
-                      <ArrowDown className="w-3.5 h-3.5" /> Down
+                      <ArrowDown className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteQuestion(activeAbsoluteIdx)}
-                      className={`${buttonSecondaryClass} border-red-600 dark:border-red-600 text-red-600 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white flex-1 h-9 text-[10px] gap-1 px-1`}
+                      className="h-8 w-8 flex items-center justify-center border border-error/40 bg-card hover:bg-error hover:text-white text-error transition-colors rounded cursor-pointer"
+                      title="Delete Slide"
                     >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -2165,7 +2340,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
               onClick={(e) => e.stopPropagation()}
               className={`${cardClass} w-full max-w-3xl gap-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto`}
             >
-              <div className="flex items-center justify-between border-b-2 border-neutral-900 dark:border-neutral-100 pb-4">
+              <div className="flex items-center justify-between border-b-2 border-neutral-900  pb-4">
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-tight">Add Content Slide</h2>
                   <p className="text-xs text-muted-foreground uppercase mt-0.5 tracking-wider">
@@ -2186,7 +2361,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                 
                 {/* 1. Text & Contacts Category */}
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
                     Text & Contact Info
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -2206,10 +2381,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           addQuestion(item.type as FieldType);
                           setShowAddContent(false);
                         }}
-                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-none bg-background"
+                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-md bg-background"
                       >
                         <div className="flex items-center gap-2 font-bold uppercase text-[10px] tracking-wide">
-                          <item.icon className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
+                          <item.icon className="w-3.5 h-3.5 text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
                           {item.label}
                         </div>
                         <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-relaxed truncate">
@@ -2222,7 +2397,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                 {/* 2. Choice & Options Category */}
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
                     Choices & Selections
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -2239,10 +2414,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           addQuestion(item.type as FieldType);
                           setShowAddContent(false);
                         }}
-                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-none bg-background"
+                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-md bg-background"
                       >
                         <div className="flex items-center gap-2 font-bold uppercase text-[10px] tracking-wide">
-                          <item.icon className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
+                          <item.icon className="w-3.5 h-3.5 text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
                           {item.label}
                         </div>
                         <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-relaxed truncate">
@@ -2255,7 +2430,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                 {/* 3. Scales & Calendar Category */}
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
                     Scales & Dates
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -2272,10 +2447,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           addQuestion(item.type as FieldType);
                           setShowAddContent(false);
                         }}
-                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-none bg-background"
+                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-md bg-background"
                       >
                         <div className="flex items-center gap-2 font-bold uppercase text-[10px] tracking-wide">
-                          <item.icon className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
+                          <item.icon className="w-3.5 h-3.5 text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
                           {item.label}
                         </div>
                         <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-relaxed truncate">
@@ -2288,7 +2463,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                 {/* 4. Media Ingestion Category */}
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
                     Media & File Ingestion
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -2305,10 +2480,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           addQuestion(item.type as FieldType);
                           setShowAddContent(false);
                         }}
-                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-none bg-background"
+                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-md bg-background"
                       >
                         <div className="flex items-center gap-2 font-bold uppercase text-[10px] tracking-wide">
-                          <item.icon className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
+                          <item.icon className="w-3.5 h-3.5 text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
                           {item.label}
                         </div>
                         <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-relaxed truncate">
@@ -2321,7 +2496,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                 {/* 5. Informational & Layout Steps Category (Non-input fields) */}
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 border-b border-neutral-200 dark:border-neutral-800 pb-1 mb-3">
                     Informational Steps (No Input)
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -2337,10 +2512,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           addQuestion(item.type as FieldType);
                           setShowAddContent(false);
                         }}
-                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-none bg-background"
+                        className="text-left border-2 border-neutral-300 dark:border-neutral-700 hover:border-neutral-900 dark:hover:border-neutral-100 p-3 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-950 flex flex-col gap-1 cursor-pointer group rounded-md bg-background"
                       >
                         <div className="flex items-center gap-2 font-bold uppercase text-[10px] tracking-wide">
-                          <item.icon className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
+                          <item.icon className="w-3.5 h-3.5 text-orange-500 group-hover:scale-110 transition-transform shrink-0" />
                           {item.label}
                         </div>
                         <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-relaxed truncate">
@@ -2362,7 +2537,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
             {/* Progress bar */}
             <div className="fixed top-0 left-0 right-0 h-0.5 bg-neutral-800 z-50">
               <div
-                className="h-full bg-amber-400 transition-all duration-500 ease-out"
+                className="h-full bg-primary transition-all duration-500 ease-out"
                 style={{ width: `${((previewStepIndex + 1) / topLevelQuestions.length) * 100}%` }}
               />
             </div>
@@ -2377,7 +2552,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
             {/* Header */}
             <div className="flex items-center justify-between border-b-2 border-neutral-800 pb-4 mb-8">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-amber-400 text-black">
+                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-primary text-black">
                   Preview Mode
                 </span>
                 <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 ml-3">
@@ -2404,7 +2579,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   <div className="w-full max-w-2xl flex flex-col gap-8 animate-fade-in px-4 md:px-8">
                     {/* Header Step Progress (unless it's THANK_YOU) */}
                     {!isThankYou && (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">
                         Step {previewStepIndex + 1} of {topLevelQuestions.length}
                       </span>
                     )}
@@ -2444,7 +2619,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             placeholder={q.placeholder || "Type your answer..."}
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                            className="bg-transparent border-b-2 border-neutral-700 focus:border-amber-400 text-white text-xl py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600"
+                            className="bg-transparent border-b-2 border-neutral-700 focus:border-primary text-white text-xl py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600"
                           />
                         )}
 
@@ -2455,7 +2630,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
                             rows={4}
-                            className="bg-transparent border-b-2 border-neutral-700 focus:border-amber-400 text-white text-lg py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600 resize-none"
+                            className="bg-transparent border-b-2 border-neutral-700 focus:border-primary text-white text-lg py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600 resize-none"
                           />
                         )}
 
@@ -2466,13 +2641,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             placeholder={q.placeholder || "Type a number..."}
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
-                            className="bg-transparent border-b-2 border-neutral-700 focus:border-amber-400 text-white text-xl py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600"
+                            className="bg-transparent border-b-2 border-neutral-700 focus:border-primary text-white text-xl py-3 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600"
                           />
                         )}
 
                         {/* 4. EMAIL */}
                         {q.fieldType === "EMAIL" && (
-                          <div className="flex items-center gap-3 border-b-2 border-neutral-700 focus-within:border-amber-400 transition-colors py-3">
+                          <div className="flex items-center gap-3 border-b-2 border-neutral-700 focus-within:border-primary transition-colors py-3">
                             <Mail className="w-5 h-5 text-neutral-500 shrink-0" />
                             <input
                               type="email"
@@ -2486,7 +2661,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                         {/* 5. WEBSITE */}
                         {q.fieldType === "WEBSITE" && (
-                          <div className="flex items-center gap-2 border-b-2 border-neutral-700 focus-within:border-amber-400 transition-colors py-3">
+                          <div className="flex items-center gap-2 border-b-2 border-neutral-700 focus-within:border-primary transition-colors py-3">
                             <GlobeIcon className="w-5 h-5 text-neutral-500 shrink-0" />
                             <span className="text-neutral-500 text-lg font-bold">https://</span>
                             <input
@@ -2510,13 +2685,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                           );
 
                           return (
-                            <div className="flex items-center gap-3 border-b-2 border-neutral-700 focus-within:border-amber-400 transition-colors py-3 relative w-full">
+                            <div className="flex items-center gap-3 border-b-2 border-neutral-700 focus-within:border-primary transition-colors py-3 relative w-full">
                               <PhoneIcon className="w-5 h-5 text-neutral-500 shrink-0" />
                               <div className="relative shrink-0">
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_drop_open`]: !isDropdownOpen }); }}
-                                  className="flex items-center gap-1.5 border border-neutral-700 px-2 py-1 text-white text-xs font-black uppercase tracking-wider hover:border-amber-400 transition-colors"
+                                  className="flex items-center gap-1.5 border border-neutral-700 px-2 py-1 text-white text-xs font-black uppercase tracking-wider hover:border-orange-400 transition-colors"
                                 >
                                   {country.flag} {country.code}
                                   <span className="text-neutral-500">{country.dialCode}</span>
@@ -2531,7 +2706,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                       placeholder="Search country..."
                                       value={searchStr}
                                       onChange={(e) => setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_search`]: e.target.value })}
-                                      className="bg-neutral-800 border border-neutral-700 px-2 py-1.5 text-xs text-white focus-visible:outline-none rounded-none w-full"
+                                      className="bg-neutral-800 border border-neutral-700 px-2 py-1.5 text-xs text-white focus-visible:outline-none rounded-md w-full"
                                     />
                                     <div className="flex flex-col gap-0.5 overflow-y-auto max-h-40">
                                       {filtered.slice(0, 40).map((c, cIdx) => (
@@ -2574,7 +2749,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             value={previewAnswers[q.labelKey] || ""}
                             onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: e.target.value })}
                             onClick={(e) => e.currentTarget.showPicker?.()}
-                            className="bg-neutral-900 border-2 border-neutral-700 focus:border-amber-400 text-white text-lg py-3 px-4 w-full focus-visible:outline-none transition-colors"
+                            className="bg-neutral-900 border-2 border-neutral-700 focus:border-primary text-white text-lg py-3 px-4 w-full focus-visible:outline-none transition-colors"
                           />
                         )}
 
@@ -2593,7 +2768,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   <Star
                                     className={`w-10 h-10 transition-colors ${
                                       val <= activeRating
-                                        ? "text-amber-400 fill-amber-400"
+                                        ? "text-orange-400 fill-orange-400"
                                         : "text-neutral-600"
                                     }`}
                                   />
@@ -2616,12 +2791,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   onClick={() => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: choice })}
                                   className={`flex items-center gap-3 border-2 px-6 py-4 font-black uppercase tracking-widest text-sm transition-colors cursor-pointer ${
                                     isSelected
-                                      ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                                      ? "border-orange-400 bg-primary/10 text-orange-400"
                                       : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
                                   }`}
                                 >
                                   <span className={`w-6 h-6 flex items-center justify-center font-extrabold text-xs border ${
-                                    isSelected ? "bg-amber-400 text-black border-amber-400" : "border-neutral-600 text-neutral-400"
+                                    isSelected ? "bg-primary text-black border-orange-400" : "border-neutral-600 text-neutral-400"
                                   }`}>
                                     {choice[0]}
                                   </span>
@@ -2645,12 +2820,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   onClick={() => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: opt })}
                                   className={`flex items-center gap-4 border-2 px-5 py-4 text-sm font-bold uppercase tracking-wider transition-colors text-left cursor-pointer ${
                                     isSelected
-                                      ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                                      ? "border-orange-400 bg-primary/10 text-orange-400"
                                       : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
                                   }`}
                                 >
                                   <span className={`w-6 h-6 flex items-center justify-center text-[10px] font-black shrink-0 border ${
-                                    isSelected ? "bg-amber-400 text-black border-amber-400" : "border-neutral-600 text-neutral-400"
+                                    isSelected ? "bg-primary text-black border-orange-400" : "border-neutral-600 text-neutral-400"
                                   }`}>
                                     {String.fromCharCode(65 + oIdx)}
                                   </span>
@@ -2679,12 +2854,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                   }}
                                   className={`flex items-center gap-4 border-2 px-5 py-4 text-sm font-bold uppercase tracking-wider transition-colors text-left cursor-pointer ${
                                     isSelected
-                                      ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                                      ? "border-orange-400 bg-primary/10 text-orange-400"
                                       : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
                                   }`}
                                 >
                                   <span className={`w-5 h-5 flex items-center justify-center shrink-0 border-2 transition-colors ${
-                                    isSelected ? "bg-amber-400 border-amber-400" : "border-neutral-600"
+                                    isSelected ? "bg-primary border-orange-400" : "border-neutral-600"
                                   }`}>
                                     {isSelected && <Check className="w-3 h-3 text-black" />}
                                   </span>
@@ -2705,7 +2880,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setPreviewAnswers({ ...previewAnswers, [`${q.labelKey}_drop_open`]: !isOpen }); }}
-                                className="w-full flex items-center justify-between border-2 border-neutral-700 hover:border-amber-400 px-4 py-3 text-sm font-black uppercase tracking-wider text-left transition-colors bg-neutral-900"
+                                className="w-full flex items-center justify-between border-2 border-neutral-700 hover:border-orange-400 px-4 py-3 text-sm font-black uppercase tracking-wider text-left transition-colors bg-neutral-900"
                               >
                                 <span className={val ? "text-white" : "text-neutral-500"}>
                                   {val || "Select an option..."}
@@ -2726,7 +2901,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                           [`${q.labelKey}_drop_open`]: false
                                         });
                                       }}
-                                      className="w-full text-left px-4 py-3 text-sm font-bold uppercase tracking-wide hover:bg-amber-400/10 hover:text-amber-400 transition-colors text-neutral-300 bg-neutral-900 border-none cursor-pointer"
+                                      className="w-full text-left px-4 py-3 text-sm font-bold uppercase tracking-wide hover:bg-primary/10 hover:text-orange-400 transition-colors text-neutral-300 bg-neutral-900 border-none cursor-pointer"
                                     >
                                       {opt}
                                     </button>
@@ -2747,11 +2922,11 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             <div className="flex flex-col gap-4 max-w-lg mt-2 w-full">
                               <div className="relative w-full h-4 bg-neutral-800 border border-neutral-700 select-none">
                                 <div 
-                                  className="absolute left-0 top-0 bottom-0 bg-amber-400" 
+                                  className="absolute left-0 top-0 bottom-0 bg-primary" 
                                   style={{ width: `${percent}%` }}
                                 />
                                 <div 
-                                  className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-amber-400 rotate-45 border-2 border-black flex items-center justify-center pointer-events-none"
+                                  className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-primary rotate-45 border-2 border-black flex items-center justify-center pointer-events-none"
                                   style={{ left: `calc(${percent}% - 12px)` }}
                                 />
                                 <input
@@ -2766,7 +2941,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                               <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-neutral-500">
                                 <span>{min}</span>
-                                <span className="text-amber-400 text-sm">{currentSliderVal}</span>
+                                <span className="text-orange-400 text-sm">{currentSliderVal}</span>
                                 <span>{max}</span>
                               </div>
                             </div>
@@ -2787,23 +2962,23 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                                       {child.isRequired && <span className="text-red-400 ml-1">*</span>}
                                     </span>
                                     {child.fieldType === "EMAIL" ? (
-                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
+                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-primary transition-colors py-2">
                                         <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
                                         <input type="email" placeholder={child.placeholder || "email@example.com"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
                                       </div>
                                     ) : child.fieldType === "PHONE" ? (
-                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
+                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-primary transition-colors py-2">
                                         <PhoneIcon className="w-4 h-4 text-neutral-500 shrink-0" />
                                         <input type="tel" placeholder={child.placeholder || "(555) 000-0000"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value.replace(/[^0-9]/g, "") })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
                                       </div>
                                     ) : child.fieldType === "WEBSITE" ? (
-                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-amber-400 transition-colors py-2">
+                                      <div className="flex items-center gap-2 border-b border-neutral-700 focus-within:border-primary transition-colors py-2">
                                         <GlobeIcon className="w-4 h-4 text-neutral-500 shrink-0" />
                                         <span className="text-neutral-500 font-bold">https://</span>
                                         <input type="text" placeholder={child.placeholder || "yourwebsite.com"} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent text-white w-full focus-visible:outline-none placeholder:text-neutral-600 text-base" />
                                       </div>
                                     ) : (
-                                      <input type="text" placeholder={child.placeholder || ""} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent border-b border-neutral-700 focus:border-amber-400 text-white py-2 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600 text-base" />
+                                      <input type="text" placeholder={child.placeholder || ""} value={previewAnswers[child.labelKey] || ""} onChange={(e) => setPreviewAnswers({ ...previewAnswers, [child.labelKey]: e.target.value })} className="bg-transparent border-b border-neutral-700 focus:border-primary text-white py-2 w-full focus-visible:outline-none transition-colors placeholder:text-neutral-600 text-base" />
                                     )}
                                   </div>
                                 );
@@ -2837,7 +3012,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-orange-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2866,7 +3041,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-orange-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2895,7 +3070,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-orange-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2924,7 +3099,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                               className="text-xs text-muted-foreground uppercase tracking-wider cursor-pointer"
                             />
                             {previewAnswers[q.labelKey] && (
-                              <span className="text-xs text-amber-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
+                              <span className="text-xs text-orange-400 font-bold bg-neutral-900 text-white px-3.5 py-1.5 uppercase tracking-wider mt-1 border border-neutral-700">
                                 Attached: {previewAnswers[q.labelKey]}
                               </span>
                             )}
@@ -2957,7 +3132,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     <button
                       type="button"
                       onClick={() => setIsPreviewOpen(false)}
-                      className="flex items-center gap-2 bg-amber-400 text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-amber-300 transition-colors cursor-pointer"
+                      className="flex items-center gap-2 bg-primary text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-primary/80 transition-colors cursor-pointer"
                     >
                       Close Preview
                     </button>
@@ -2976,7 +3151,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="flex items-center gap-2 bg-amber-400 text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-amber-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 bg-primary text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-primary/80 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isFinal ? <><Check className="w-4 h-4" /> Submit</> : <>Next <ArrowRight className="w-4 h-4" /></>}
                   </button>

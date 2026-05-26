@@ -1,0 +1,19 @@
+<!-- Option 2: The Dynamic Cursor (Formz wordmark with cursor z) -->
+<svg width="280" height="80" viewBox="0 0 280 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background for visibility -->
+  <rect width="280" height="80" rx="16" fill="#0F0F0F"/>
+  <!-- Letter F -->
+  <path d="M25 20H65V30H37V38H58V48H37V60H25V20Z" fill="white"/>
+  <!-- Letter o -->
+  <circle cx="78" cy="42" r="12" stroke="white" stroke-width="8" fill="none"/>
+  <!-- Letter r -->
+  <path d="M98 60V20H110V28L118 20H130L118 32L130 44H116L110 38V60H98Z" fill="white"/>
+  <!-- Letter m -->
+  <path d="M138 60V20H150V28C150 24 154 20 160 20C166 20 170 24 170 28C170 24 174 20 180 20C186 20 190 24 190 28V60H178V32C178 30 176 28 174 28C172 28 170 30 170 32V60H158V32C158 30 156 28 154 28C152 28 150 30 150 32V60H138Z" fill="white"/>
+  <!-- Letter z with cursor extension -->
+  <path d="M200 20H240V30H214L240 50V60H200V50H226L200 30V20Z" fill="white"/>
+  <!-- Cursor line extending from z -->
+  <rect x="245" y="18" width="4" height="24" rx="2" fill="#FF6B35"/>
+  <!-- Blinking dot -->
+  <circle cx="247" cy="50" r="3" fill="#FF6B35"/>
+</svg>
