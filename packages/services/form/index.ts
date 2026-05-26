@@ -13,7 +13,7 @@ import {
 import argon2 from 'argon2'
 import UserService from "../user/index";
 const userService = new UserService();
-import { db, and, eq, desc, inArray, lt, isNotNull, sql } from "@repo/database";
+import { db, and, eq, desc, inArray, lt, isNotNull, sql, or, isNull, gt } from "@repo/database";
 import { formsTable } from "@repo/database/models/form";
 import { formField } from "@repo/database/models/formFields";
 import { submissionsTable } from "@repo/database/models/submissions";
@@ -167,6 +167,36 @@ class formService {
       .leftJoin(submissionsTable, eq(formsTable.formId, submissionsTable.formId))
       .where(eq(formsTable.createdBy, createdBy))
       .groupBy(formsTable.formId)
+      .orderBy(desc(formsTable.createdAt));
+
+    return forms;
+  }
+
+  public async getExploreForms() {
+    const forms = await db
+      .select({
+        id: formsTable.formId,
+        title: formsTable.title,
+        description: formsTable.description,
+        slug: formsTable.slug,
+        isPublished: formsTable.isPublished,
+        visibility: formsTable.visibility,
+        createdAt: formsTable.createdAt,
+        creatorFirstName: usersTable.firstName,
+        creatorLastName: usersTable.lastName,
+        responses: sql<number>`cast(count(${submissionsTable.id}) as integer)`,
+      })
+      .from(formsTable)
+      .leftJoin(submissionsTable, eq(formsTable.formId, submissionsTable.formId))
+      .leftJoin(usersTable, eq(formsTable.createdBy, usersTable.id))
+      .where(
+        and(
+          eq(formsTable.isPublished, true), 
+          eq(formsTable.visibility, "PUBLIC"),
+          or(isNull(formsTable.validTill), gt(formsTable.validTill, new Date()))
+        )
+      )
+      .groupBy(formsTable.formId, usersTable.firstName, usersTable.lastName)
       .orderBy(desc(formsTable.createdAt));
 
     return forms;
@@ -403,6 +433,10 @@ class formService {
 
     if (!form.isPublished) {
       throw new Error("This form is not accepting responses");
+    }
+
+    if (form.validTill && new Date() > new Date(form.validTill)) {
+      throw new Error("This form has expired and is no longer accepting responses");
     }
 
     // Password check for non-PRIVATE forms (PUBLIC / UNLISTED)

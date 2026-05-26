@@ -418,8 +418,17 @@ export default function Home() {
               Pricing
               <span className="absolute -bottom-1.5 left-0 w-full h-[1.5px] bg-[#FF6B35] scale-x-0 group-hover:scale-x-100 transition-transform origin-center duration-300"></span>
             </a>
+            <Link 
+              href="/explore" 
+              onMouseEnter={() => setCursorHovered(true)}
+              onMouseLeave={() => setCursorHovered(false)}
+              className="text-xs font-bold uppercase tracking-widest text-[#A1A1A1] hover:text-white transition-colors relative group"
+            >
+              Explore
+              <span className="absolute -bottom-1.5 left-0 w-full h-[1.5px] bg-[#FF6B35] scale-x-0 group-hover:scale-x-100 transition-transform origin-center duration-300"></span>
+            </Link>
           </nav>
-
+          
           <div className="flex items-center gap-6">
             <Link 
               href="/sign-in" 
@@ -465,6 +474,14 @@ export default function Home() {
               className="bg-[#FF6B35] text-white font-bold px-8 py-4 rounded-full hover:bg-[#FF6B35]/90 transition-all duration-300 flex items-center gap-2 text-xs uppercase tracking-widest shadow-[0_10px_30px_rgba(255,107,53,0.2)] hover:scale-105"
             >
               Start Building Free <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link 
+              href="/explore"
+              onMouseEnter={() => setCursorHovered(true)}
+              onMouseLeave={() => setCursorHovered(false)}
+              className="inline-flex items-center justify-center font-bold px-8 py-4 rounded-full border border-[#222222] bg-[#111] hover:bg-[#161616] text-[#A1A1A1] hover:text-white transition-all duration-300 text-xs uppercase tracking-widest gap-2 hover:scale-105"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#FF6B35]" /> Explore Public Forms
             </Link>
             <button 
               onClick={() => setVideoOpen(true)}

@@ -19,6 +19,23 @@ export const deleteFormOutputModel = z.object({
 
 export const getUserFormsInputModel = z.undefined();
 
+export const getExploreFormsInputModel = z.undefined();
+
+export const getExploreFormsOutputModel = z.array(
+  z.object({
+    id: z.string().uuid().describe("Id of the form"),
+    title: z.string().describe("Title of the form"),
+    description: z.string().nullable().optional().describe("Description of the form"),
+    slug: z.string().describe("Unique slug of the form"),
+    isPublished: z.boolean().describe("Whether the form is published"),
+    visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).nullable().describe("Visibility level"),
+    createdAt: z.coerce.date().nullable().optional().describe("Form creation date"),
+    creatorFirstName: z.string().nullable().optional().describe("First name of the form creator"),
+    creatorLastName: z.string().nullable().optional().describe("Last name of the form creator"),
+    responses: z.coerce.number().describe("Number of responses"),
+  })
+);
+
 export const getUserFormsOutputModel = z.array(
   z.object({
     id: z.string().uuid().describe("Id of the form"),

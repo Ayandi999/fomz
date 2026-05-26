@@ -5,6 +5,8 @@ import {
   deleteFormOutputModel,
   getUserFormsInputModel,
   getUserFormsOutputModel,
+  getExploreFormsInputModel,
+  getExploreFormsOutputModel,
   getFormFieldsInputModel,
   getFormFieldsOutputModel,
   createFormFieldsInputModel,
@@ -99,6 +101,21 @@ export const formsRouter = router({
       const { id: createdBy } = await userService.verifyUserToken(token);
 
       const forms = await formService.getUserForms(createdBy);
+      return forms;
+    }),
+
+  getExploreForms: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/getExploreForms",
+        tags: TAGS,
+      },
+    })
+    .input(getExploreFormsInputModel)
+    .output(getExploreFormsOutputModel)
+    .query(async () => {
+      const forms = await formService.getExploreForms();
       return forms;
     }),
 
