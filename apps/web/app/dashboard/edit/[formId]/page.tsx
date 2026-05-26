@@ -1582,13 +1582,23 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
           {/* Left Column: Slides Map */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div className={cardClass}>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[14px] font-semibold text-foreground flex items-center gap-1.5">
-                  <ListIcon className="w-3.5 h-3.5 text-primary" /> Slides
-                </span>
-                <span className="text-[12px] font-medium text-text-secondary">
-                  {topLevelQuestions.length} step{topLevelQuestions.length !== 1 ? 's' : ''}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[14px] font-semibold text-foreground flex items-center gap-1.5">
+                    <ListIcon className="w-3.5 h-3.5 text-primary" /> Slides
+                  </span>
+                  <span className="text-[12px] font-medium text-text-secondary">
+                    {topLevelQuestions.length} step{topLevelQuestions.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddContent(true)}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg bg-[#FF6B35] hover:bg-[#FF8555] text-white transition-all duration-200 cursor-pointer border-none shadow-md shadow-[#FF6B35]/20 hover:scale-[1.05]"
+                  title="Add Step"
+                >
+                  <Plus className="w-4.5 h-4.5" />
+                </button>
               </div>
 
               <div className="border-t border-border w-full my-1"></div>
@@ -1630,35 +1640,11 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   ))}
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={() => setShowAddContent(true)}
-                className="w-full py-2 border border-dashed border-border hover:border-primary/50 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-primary transition-all duration-200 rounded-lg flex items-center justify-center gap-1 bg-transparent cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Step
-              </button>
             </div>
           </div>
 
           {/* Center Column: Live Slide Editor Preview */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            
-            {/* Top Toolbar */}
-            <div className="flex items-center justify-between border border-border bg-background px-6 py-4 shadow-sm">
-              <div>
-                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  {currentForm?.title || "Conversational Canvas"}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddContent(true)}
-                className={`${buttonPrimaryClass} h-10 px-5 text-xs flex items-center gap-2`}
-              >
-                <Plus className="w-4 h-4" /> Add Content
-              </button>
-            </div>
 
             {saveStatus === "saved" && (
               <div className="bg-emerald-100 dark:bg-emerald-950/20 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-400 p-3 text-xs font-bold uppercase tracking-wider text-center">

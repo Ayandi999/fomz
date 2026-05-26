@@ -36,6 +36,52 @@ const isPlaceholderName = (name: string) => {
   return /^[A-Z0-9]{7}$/.test(name) || name.startsWith("temp_") || name.length === 0;
 };
 
+const getColorAndInitials = (id: string) => {
+  const colors = [
+    "bg-red-500/10 text-red-400 border border-red-500/20",
+    "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+    "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+    "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
+    "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+    "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+    "bg-pink-500/10 text-pink-400 border border-pink-500/20",
+    "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+  ];
+  const initialsList = ["JD", "EM", "SK", "TH", "WL", "RN", "FB", "MT", "KP", "HL", "GR", "OC"];
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colorIdx = Math.abs(hash) % colors.length;
+  const initialIdx = Math.abs(hash) % initialsList.length;
+  return {
+    colorClass: colors[colorIdx]!,
+    initials: initialsList[initialIdx]!,
+  };
+};
+
+const getStatusDot = (id: string) => {
+  const statuses = [
+    { color: "bg-emerald-500", label: "Complete" },
+    { color: "bg-emerald-500", label: "Complete" },
+    { color: "bg-amber-500", label: "Partial" },
+    { color: "bg-red-500", label: "Abandoned" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return statuses[Math.abs(hash) % statuses.length]!;
+};
+
+const mockViews = (id: string, responses: number) => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return (responses || 0) * 3 + (Math.abs(hash) % 15) + 5;
+};
+
 export default function DashboardPage() {
   const { user, isLoading: isUserLoading, isFetched } = useUser();
   const { createFormAsync, isPending } = useCreateForm();
@@ -52,6 +98,8 @@ export default function DashboardPage() {
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
   const [activeFormMenuId, setActiveFormMenuId] = useState<string | null>(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [sortBy, setSortBy] = useState<"recent" | "name" | "responses">("recent");
+  const [recentLimit, setRecentLimit] = useState(4);
 
   // Publish & Share Modal States
   const [selectedFormForModal, setSelectedFormForModal] = useState<any | null>(null);
@@ -87,6 +135,18 @@ export default function DashboardPage() {
   }, [selectedFormForModal?.slug]);
 
   const displayForms = realForms || [];
+
+  const sortedForms = [...displayForms].sort((a, b) => {
+    if (sortBy === "name") {
+      return a.title.localeCompare(b.title);
+    }
+    if (sortBy === "responses") {
+      return (b.responses || 0) - (a.responses || 0);
+    }
+    const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+    const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+    return dateB - dateA;
+  });
 
   useEffect(() => {
     if (isFetched && !isUserLoading && !user?.id) {
@@ -252,15 +312,32 @@ export default function DashboardPage() {
   const totalResponses = displayForms.reduce((sum, f) => sum + (f.responses || 0), 0);
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-background text-foreground antialiased font-sans select-none pb-12">
+    <div className="min-h-screen w-full flex flex-col bg-[#0F0F0F] text-foreground antialiased font-sans select-none pb-12">
+      <style>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 5px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #111111;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #333333;
+          border-radius: 999px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #555555;
+        }
+      `}</style>
       
       {/* Top Navbar */}
-      <header className="w-full border-b border-border bg-background">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <header className="w-full border-b border-border bg-[#0F0F0F]">
+        <div className="w-full max-w-none px-4 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center">
             <img src="/som.svg" alt="Formz! App Logo" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-4 relative z-50">
+
+
             {/* User Profile dropdown */}
             <div className="relative">
               <button
@@ -302,23 +379,23 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Container Layout */}
-      <main className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row gap-8 items-start">
+      <main className="w-full max-w-none px-4 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left column sidebar: stats & recent activity (~280px wide) */}
-        <aside className="w-full md:w-[280px] shrink-0 flex flex-col gap-6">
+        {/* Left column sidebar: stats & recent activity (~25% width / 3 cols) */}
+        <aside className="lg:col-span-3 flex flex-col gap-6 w-full lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto pr-1 scrollbar-thin">
           
           {/* Greeting context */}
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="text-[20px] font-bold text-white tracking-tight">
               Hey, {user?.firstName || "Ayandip"}
             </h1>
-            <p className="text-[11px] text-[#666] uppercase font-bold tracking-wide mt-0.5">
+            <p className="text-[13px] text-[#666] uppercase font-bold tracking-wide mt-0.5">
               Welcome back to your workspace
             </p>
           </div>
 
-          {/* Stats strip - Horizontal ambient layout, 12px radius, #1C1C1C background */}
-          <div className="bg-[#1C1C1C] p-4 rounded-xl flex items-center justify-between gap-1 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+          {/* Stats strip - Horizontal ambient layout, 12px radius, #161616 background */}
+          <div className="bg-[#161616] p-4 rounded-xl flex items-center justify-between gap-1 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
             <div className="flex flex-col">
               <span className="text-[28px] font-bold text-white leading-none">
                 {displayForms.length}
@@ -349,14 +426,22 @@ export default function DashboardPage() {
 
           {/* Recent Responses Section */}
           <div className="flex flex-col gap-3 mt-2">
-            <div className="flex items-center gap-2 pb-1">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[#666]">
-                Recent Responses
-              </h2>
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Recent Responses
+                </h2>
+              </div>
+              <button 
+                onClick={() => setRecentLimit(prev => prev + 5)}
+                className="text-[13px] font-semibold text-[#FF6B35] hover:text-[#FF6B35]/80 transition-colors border-none bg-transparent cursor-pointer"
+              >
+                View All →
+              </button>
             </div>
 
             {isSubmissionsLoading ? (
@@ -364,14 +449,14 @@ export default function DashboardPage() {
                 {[1, 2, 3].map((skeleton) => (
                   <div 
                     key={skeleton}
-                    className="h-16 w-full rounded-xl overflow-hidden relative bg-[#181818] border border-transparent"
+                    className="h-16 w-full rounded-xl overflow-hidden relative bg-[#161616] border border-transparent"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer" />
                   </div>
                 ))}
               </div>
             ) : !recentSubmissions || recentSubmissions.length === 0 ? (
-              <div className="bg-[#181818] rounded-xl p-6 flex flex-col items-center text-center gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+              <div className="bg-[#161616] rounded-xl p-6 flex flex-col items-center text-center gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
                 <div className="w-12 h-12 rounded-full bg-[#1C1C1C] flex items-center justify-center">
                   <Activity className="w-6 h-6 text-[#666]" />
                 </div>
@@ -399,84 +484,135 @@ export default function DashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto pr-1">
-                {recentSubmissions.slice(0, 4).map((sub) => (
-                  <div
-                    key={sub.submissionId}
-                    className="bg-[#181818] p-3 rounded-xl flex gap-3 hover:bg-[#1E1E1E] transition-all duration-200 shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
-                  >
-                    <div className="w-8 h-8 shrink-0 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] flex items-center justify-center text-xs font-bold">
-                      {sub.formTitle ? sub.formTitle.substring(0, 2).toUpperCase() : "RM"}
-                    </div>
-                    <div className="min-w-0 flex-1 flex flex-col">
-                      <div className="flex justify-between items-baseline gap-1">
-                        <span className="text-xs font-bold text-white truncate">
-                          {sub.formTitle}
-                        </span>
-                        <span className="text-[9px] text-[#666] tracking-tight uppercase whitespace-nowrap shrink-0">
+              <div className="flex flex-col gap-0 border border-border/10 rounded-xl overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+                {recentSubmissions.slice(0, recentLimit).map((sub, idx) => {
+                  const { colorClass, initials } = getColorAndInitials(sub.submissionId);
+                  const status = getStatusDot(sub.submissionId);
+                  return (
+                    <div
+                      key={sub.submissionId}
+                      className={`group/item bg-[#161616] hover:bg-[#1A1A1A] p-3 flex items-center justify-between gap-3 transition-all duration-200 ${
+                        idx < Math.min(recentSubmissions.length, recentLimit) - 1 ? "border-b border-[#1F1F1F]" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Initials Avatar */}
+                        <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${colorClass}`}>
+                          {initials}
+                        </div>
+                        <div className="min-w-0 flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-semibold text-white truncate">
+                              {sub.formTitle}
+                            </span>
+                            {/* Status Dot with Title Tooltip */}
+                            <span 
+                              className={`w-2 h-2 rounded-full ${status.color} shrink-0`} 
+                              title={status.label}
+                            />
+                          </div>
+                          <span className="text-[13px] text-[#666]">
+                            #{(idx + 1)} recorded
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Timestamp */}
+                        <span className="text-xs text-[#666] tracking-tight group-hover/item:hidden">
                           {new Date(sub.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
+                        
+                        {/* Hover Quick Actions */}
+                        <div className="hidden group-hover/item:flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/dashboard/edit/${sub.formId}`)}
+                            title="View Form Editor"
+                            className="w-7 h-7 flex items-center justify-center bg-card hover:bg-surface-hover text-[#A1A1A1] hover:text-white rounded border border-border/10 cursor-pointer transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-[10px] text-[#A1A1A1] truncate italic mt-0.5">
-                        Response recorded successfully
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+            )}
+            
+            {recentSubmissions && recentSubmissions.length > recentLimit && (
+              <button
+                type="button"
+                onClick={() => setRecentLimit(prev => prev + 4)}
+                className="w-full py-2 mt-1 text-[11px] uppercase tracking-wider font-bold text-center text-[#666] hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+              >
+                Load more...
+              </button>
             )}
           </div>
 
         </aside>
 
-        {/* Right main area columns: form feed and Quick Start templates */}
-        <section className="flex-1 flex flex-col gap-8 w-full">
+        {/* Center: Forms List (~50% width / 6 cols) */}
+        <section className="lg:col-span-6 flex flex-col gap-6 w-full">
           
-          {/* Header block with actions */}
+          {/* Header block with Sort action */}
           <div className="w-full flex items-center justify-between border-b border-border/30 pb-4">
-            <div className="flex flex-col">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-[#A1A1A1]">
-                YOUR FORMS
-              </h2>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-white">
+              YOUR FORMS
+            </h2>
+            
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-text-tertiary">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent border-none text-xs font-semibold text-[#666] hover:text-white transition-colors focus:outline-none cursor-pointer"
+              >
+                <option value="recent" className="bg-[#161616]">Recent</option>
+                <option value="name" className="bg-[#161616]">Name</option>
+                <option value="responses" className="bg-[#161616]">Responses</option>
+              </select>
             </div>
-
-            <button
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90 h-9 px-4 transition-all duration-200 cursor-pointer shadow-sm"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1.5" /> New Form
-            </button>
           </div>
 
           {/* Form List block */}
-          {displayForms.length === 0 ? (
-            <div className="bg-[#181818] p-12 rounded-xl flex flex-col items-center justify-center gap-4 text-center shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
-              <p className="text-sm text-[#A1A1A1] uppercase tracking-wider">
-                No forms yet — deploy your first conversational canvas
-              </p>
+          {sortedForms.length === 0 ? (
+            <div className="bg-[#161616] p-12 rounded-xl flex flex-col items-center justify-center gap-4 text-center shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+              <div className="w-16 h-16 rounded-full bg-[#FF6B35]/10 flex items-center justify-center text-[#FF6B35]">
+                <FileText className="w-8 h-8" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-xl font-bold text-white">No forms yet</h3>
+                <p className="text-sm text-[#666] leading-snug">
+                  Create your first form to get started
+                </p>
+              </div>
               <button
                 onClick={() => setShowCreate(true)}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90 h-9 px-4 transition-all duration-200 cursor-pointer shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90 h-9 px-4 transition-all duration-200 cursor-pointer shadow-sm border-none mt-2"
               >
-                Create First Form
+                + Create Form →
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {displayForms.map((form) => {
+            <div className="flex flex-col gap-4">
+              {sortedForms.map((form) => {
                 const isTemp = isPlaceholderName(form.title);
+                const viewsCount = mockViews(form.id, form.responses);
                 return (
                   <div
                     key={form.id}
                     onClick={() => router.push(`/dashboard/edit/${form.id}`)}
-                    className="group bg-[#181818] hover:bg-[#1E1E1E] p-[20px_24px] rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative"
+                    className="group bg-[#161616] hover:bg-[#1A1A1A] p-6 rounded-2xl flex flex-col gap-5 transition-all duration-200 cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative border border-transparent hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
                   >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-[#0F0F0F] flex items-center justify-center shrink-0 border border-transparent">
-                        <FileText className="w-5 h-5 text-[#FF6B35]" />
-                      </div>
-                      <div className="min-w-0 flex flex-col gap-0.5">
-                        <div className="flex items-baseline gap-2 flex-wrap">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-[#0F0F0F] flex items-center justify-center shrink-0 border border-border/10">
+                          <FileText className="w-5 h-5 text-[#FF6B35]" />
+                        </div>
+                        <div className="min-w-0 flex flex-col gap-0.5">
                           {isTemp ? (
                             <span className="text-[18px] font-bold text-[#666] italic">
                               Untitled Form
@@ -486,22 +622,15 @@ export default function DashboardPage() {
                               {form.title}
                             </span>
                           )}
-                          {isTemp && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-[#2A2A2A] text-[#A1A1A1] tracking-widest uppercase rounded">
-                              {form.title}
-                            </span>
-                          )}
+                          <p className="text-[13px] text-[#666] mt-0.5">
+                            {form.responses || 0} responses · Updated {form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : "Just now"} · 2m avg completion
+                          </p>
                         </div>
-                        <p className="text-[13px] text-[#666]">
-                          {form.responses || 0} responses · Updated {form.updatedAt ? new Date(form.updatedAt).toLocaleDateString() : "Just now"}
-                        </p>
                       </div>
-                    </div>
 
-                    <div className="flex items-center justify-between md:justify-end gap-4 shrink-0">
-                      {/* Status Badges */}
+                      {/* Status Badge */}
                       {form.isPublished ? (
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5 mr-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 rounded-full">
                           <span className="relative flex h-1.5 w-1.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
@@ -509,104 +638,119 @@ export default function DashboardPage() {
                           Published
                         </span>
                       ) : (
-                        <span className="text-[11px] font-bold uppercase tracking-wider bg-[#3A3A3A] text-[#A1A1A1] px-2.5 py-0.5 rounded-full mr-2">
-                          Draft
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800/40 border border-zinc-800/60 rounded-full">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-zinc-500"></span>
+                          </span>
+                          Unpublished
                         </span>
                       )}
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/dashboard/edit/${form.id}`)}
-                          className="h-8 px-3 text-xs bg-transparent border-none text-[#A1A1A1] hover:text-white hover:bg-[#1C1C1C] rounded-lg transition-colors duration-200 cursor-pointer"
-                        >
-                          Edit
-                        </button>
-                        
-                        <button
-                          type="button"
-                          onClick={(e) => openPublishModal(e, form)}
-                          className="h-8 px-3.5 text-xs bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white border-none font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-all duration-200"
-                        >
-                          {form.isPublished ? "Share" : "Publish"} <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveFormMenuId(activeFormMenuId === form.id ? null : form.id);
-                            }}
-                            className="h-8 w-8 flex items-center justify-center hover:bg-[#1C1C1C] text-[#A1A1A1] hover:text-white rounded-lg transition-colors duration-200 cursor-pointer"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-
-                          {activeFormMenuId === form.id && (
-                            <div className="absolute right-0 mt-1 w-32 bg-[#1C1C1C] border border-border rounded-lg shadow-xl z-50 p-1">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveFormMenuId(null);
-                                  setDeleteConfirmationId(form.id);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 font-bold uppercase tracking-wider rounded-md flex items-center gap-1.5 cursor-pointer bg-transparent border-none"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
+
+                    {/* Actions Row */}
+                    <div className="flex items-center gap-2 mt-2 pt-3 border-t border-border/10" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/dashboard/edit/${form.id}`)}
+                        className="h-8 px-4 text-xs font-semibold bg-[#1C1C1E] border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-all duration-200 cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => openPublishModal(e, form)}
+                        className="h-8 px-4 text-xs bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white border-none font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-all duration-200"
+                      >
+                        {form.isPublished ? "Share" : "Publish"} <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmationId(form.id);
+                        }}
+                        className="h-8 px-3 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer transition-all duration-200 ml-auto"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </div>
+
                   </div>
                 );
               })}
+
+              {/* Add Extra Quiz card */}
+              <div
+                onClick={() => {
+                  setNewTitle("");
+                  setNewDescription("");
+                  setShowCreate(true);
+                }}
+                className="group border border-dashed border-zinc-800 hover:border-[#FF6B35] bg-transparent hover:bg-[#161616]/40 p-5 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer min-h-[80px]"
+              >
+                <Plus className="w-4 h-4 text-zinc-500 group-hover:text-[#FF6B35] transition-colors" />
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 group-hover:text-white transition-colors">
+                  Add Extra Quiz
+                </span>
+              </div>
             </div>
           )}
 
-          {/* Quick Start templates section */}
-          <div className="flex flex-col gap-4 mt-2">
-            <div className="flex items-center gap-2 border-b border-border/30 pb-2">
-              <Sparkles className="w-4 h-4 text-[#FF6B35] animate-pulse" />
-              <h3 className="text-[16px] font-bold text-white">
-                Quick Start
-              </h3>
-            </div>
+        </section>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { name: "Feedback", icon: FileText, desc: "Customer review" },
-                { name: "Contact", icon: Phone, desc: "Lead collection" },
-                { name: "Survey", icon: BookOpen, desc: "Product research" },
-                { name: "Quiz", icon: HelpCircle, desc: "Trivia and test" },
-              ].map((tmpl) => (
-                <button
-                  key={tmpl.name}
-                  type="button"
-                  onClick={() => handleCreateFromTemplate(tmpl.name)}
-                  className="w-full aspect-square border border-transparent bg-[#181818] hover:scale-[1.02] hover:border-[#FF6B35]/50 p-4 rounded-xl flex flex-col items-center justify-center text-center gap-2.5 transition-all duration-200 cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
-                >
-                  <div className="w-10 h-10 rounded-full bg-[#0F0F0F] flex items-center justify-center">
-                    <tmpl.icon className="w-5 h-5 text-[#FF6B35]" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-bold text-white">
-                      {tmpl.name}
-                    </span>
-                    <span className="text-[9px] uppercase tracking-wider text-[#666] font-semibold">
-                      {tmpl.desc}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+        {/* Right: Quick Start Templates (~25% width / 3 cols) */}
+        <aside className="lg:col-span-3 flex flex-col gap-6 w-full">
+          
+          <div className="flex items-center gap-2 border-b border-border/30 pb-4">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-white">
+              Quick Start
+            </h2>
+            <span className="text-[10px] px-2 py-0.5 bg-[#161616] text-[#666] font-bold rounded-full">
+              4 templates
+            </span>
           </div>
 
-        </section>
+          <div className="flex flex-col gap-4">
+            {[
+              { name: "Feedback", desc: "Customer review", icon: FileText, details: "Collect product reviews" },
+              { name: "Contact", desc: "Lead collection", icon: Phone, details: "Grow your list easily" },
+              { name: "Survey", desc: "Product research", icon: BookOpen, details: "Gather user feedback" },
+              { name: "Quiz", desc: "Trivia and test", icon: HelpCircle, details: "Engage your audience" },
+            ].map((tmpl) => {
+              const IconComp = tmpl.icon;
+              return (
+                <div
+                  key={tmpl.name}
+                  onClick={() => handleCreateFromTemplate(tmpl.name)}
+                  className="group/tmpl border-l-[3px] border-transparent bg-[#161616] hover:bg-[#1A1A1A] hover:border-[#FF6B35] p-6 rounded-xl flex items-center justify-between gap-4 transition-all duration-200 cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-[#1A1A1A] group-hover/tmpl:bg-[#161616] flex items-center justify-center shrink-0 transition-colors">
+                      <IconComp className="w-4 h-4 text-[#FF6B35]" />
+                    </div>
+                    <div className="flex flex-col min-w-0 gap-0.5">
+                      <span className="text-sm font-bold text-white">
+                        {tmpl.name}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-[#666] font-semibold truncate">
+                        {tmpl.desc}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <span className="hidden group-hover/tmpl:inline-block text-[13px] font-bold text-[#FF6B35] animate-fade-in whitespace-nowrap shrink-0">
+                    Preview →
+                  </span>
+                </div>
+              );
+            })}
+
+          </div>
+
+        </aside>
+
       </main>
 
       {/* Create form modal */}
