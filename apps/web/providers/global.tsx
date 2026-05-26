@@ -26,10 +26,11 @@ export const GlobalProviders: React.FC<{ children: React.ReactNode }> = ({ child
   return (
     <QueryClientProvider client={queryClient}>
       <NextThemesProvider
-        attribute="class"
-        defaultTheme="light"
-        enableSystem
-        disableTransitionOnChange
+        attribute="data-theme"
+        defaultTheme="dark"
+        forcedTheme="dark"
+        enableSystem={false}
+        storageKey="formz-theme"
       >
         <trpc.Provider queryClient={queryClient} client={trpcClient}>
           {children}

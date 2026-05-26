@@ -531,7 +531,6 @@ export default function Home() {
                       value={demoEmail}
                       onChange={(e) => setDemoEmail(e.target.value)}
                       className="w-full bg-black/40 border border-white/10 px-4 py-3.5 rounded-xl text-sm text-white focus:outline-none focus:border-[#FF6B35] transition-colors placeholder:text-[#444]"
-                      autoFocus
                     />
                   </div>
                 )}
@@ -816,7 +815,6 @@ export default function Home() {
                       onChange={(e) => setDemoEmail(e.target.value)}
                       placeholder="name@company.com"
                       className="bg-transparent border-b-2 border-white/5 focus:border-[#FF6B35] text-lg sm:text-2xl py-3 focus:outline-none text-white transition-colors placeholder:text-[#444]"
-                      autoFocus
                     />
                   </div>
                 )}

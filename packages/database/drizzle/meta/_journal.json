@@ -15,6 +15,13 @@
       "when": 1779707158817,
       "tag": "0001_overjoyed_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779774719940,
+      "tag": "0002_glorious_quicksilver",
+      "breakpoints": true
     }
   ]
 }

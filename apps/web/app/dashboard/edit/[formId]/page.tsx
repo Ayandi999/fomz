@@ -1136,16 +1136,6 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                       >
                         <Sliders className="w-3.5 h-3.5 text-[#FF6B35]" /> Settings
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          setTheme(theme === "dark" ? "light" : "dark");
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs font-semibold text-[#A1A1A1] hover:text-white hover:bg-[#1E1E1E] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors duration-200"
-                      >
-                        <UserIcon className="w-3.5 h-3.5 text-[#FF6B35]" /> Switch Modes
-                      </button>
                       <div className="border-t border-[#1F1F1F] w-full my-1.5"></div>
                       <button
                         type="button"
@@ -1293,6 +1283,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   <input
                     type="datetime-local"
                     value={publishValidTill}
+                    onClick={(e) => e.currentTarget.showPicker?.()}
                     onChange={e => {
                       const selectedDate = e.target.value;
                       if (selectedDate && new Date(selectedDate) < new Date()) {

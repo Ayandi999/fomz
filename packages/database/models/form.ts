@@ -12,6 +12,10 @@ export const formsTable = pgTable("forms", {
 
   visibility: visibilityEnum('visibility').default('UNLISTED'), 
 
+  //for passwor dprotection
+  isPasswordProtectes : boolean('is_password_protected').default(false),
+  password:varchar('password',{length:255}).default(''),
+
   createdBy: uuid('created_by').references(() => usersTable.id, { onDelete: 'cascade' }),
   validTill: timestamp('valid_till'),
   createdAt: timestamp("created_at").defaultNow(),
