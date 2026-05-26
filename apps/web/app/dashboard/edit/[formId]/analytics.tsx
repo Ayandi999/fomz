@@ -166,7 +166,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                           <BarChart data={agg.distribution} layout="vertical" margin={{ left: -10, right: 10 }}>
                             <XAxis type="number" hide />
                             <YAxis dataKey="choice" type="category" stroke="#666" fontSize={10} width={80} tickLine={false} />
-                            <Tooltip contentStyle={{ backgroundColor: "#1C1C1C", border: "none", color: "#white", borderRadius: "8px", fontSize: "11px" }} />
+                            <Tooltip cursor={false} contentStyle={{ backgroundColor: "#1C1C1C", border: "none", color: "white", borderRadius: "8px", fontSize: "11px" }} />
                             <Bar dataKey="count" fill={typeColor} radius={[0, 4, 4, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
@@ -198,7 +198,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                             <BarChart data={agg.distribution}>
                               <XAxis dataKey="rating" stroke="#666" fontSize={10} />
                               <YAxis hide />
-                              <Tooltip contentStyle={{ backgroundColor: "#1C1C1C", border: "none", color: "white", borderRadius: "8px", fontSize: "11px" }} />
+                              <Tooltip cursor={false} contentStyle={{ backgroundColor: "#1C1C1C", border: "none", color: "white", borderRadius: "8px", fontSize: "11px" }} />
                               <Bar dataKey="count" fill={typeColor} radius={[4, 4, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>

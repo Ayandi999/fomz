@@ -3,6 +3,7 @@
 import { useState, use, useEffect, useRef, useTransition } from "react";
 import { useGetPublicForm } from "~/hooks/api/forms/useGetPublicForm";
 import { useSubmitFormResponse } from "~/hooks/api/forms/useSubmitFormResponse";
+import { useRouter } from "next/navigation";
 import { 
   ChevronDown, Globe as GlobeIcon, Phone as PhoneIcon, 
   Mail, Star, CheckSquare, AlignLeft, Type, Hash, Calendar,
@@ -58,7 +59,15 @@ const COUNTRY_CODES_FALLBACK = [
 
 export default function PublicFormPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const router = useRouter();
   const { formId, fields, isLoading, isError, error } = useGetPublicForm(slug);
+  
+  useEffect(() => {
+    if (isError && (error as any)?.message === "LOGIN_REQUIRED") {
+      router.push(`/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+    }
+  }, [isError, error, router]);
+
   const { submitResponseAsync, isPending: isSubmitting } = useSubmitFormResponse();
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -139,6 +148,30 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-[#FF6B35]" />
           <p className="text-xs font-black uppercase tracking-widest text-neutral-400">Loading form…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (isError && (error as any)?.message === "UNAUTHORIZED_DOMAIN_RESTRICTED") {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white p-6">
+        <div className="border border-red-500/20 bg-red-950/10 p-8 max-w-md w-full flex flex-col gap-5 text-center rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto text-red-400">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-red-400">Access Restricted</h1>
+          <p className="text-xs text-[#A1A1A1] uppercase tracking-wider leading-relaxed">
+            This account is not allowed. This is a private form restricted to specific organization domains. Try signing in with a different account.
+          </p>
+          <button
+            onClick={() => {
+              router.push(`/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+            }}
+            className="w-full py-3.5 bg-[#FF6B35] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#FF6B35]/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#FF6B35]/15"
+          >
+            Try other accounts
+          </button>
         </div>
       </main>
     );

@@ -23,4 +23,6 @@ export const formsTable = pgTable("forms", {
 
   digestSent: boolean('digest_sent').default(false).notNull(),
   notificationEmails: text('notification_emails').array(),
+  allowedDomains: text('allowed_domains').array(),
 });
+

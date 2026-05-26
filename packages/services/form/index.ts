@@ -10,6 +10,8 @@ import {
   type GetPublicFormBySlugInput,
   type SubmitFormResponseInput,
 } from "./model";
+import UserService from "../user/index";
+const userService = new UserService();
 import { db, and, eq, desc, inArray, lt, isNotNull, sql } from "@repo/database";
 import { formsTable } from "@repo/database/models/form";
 import { formField } from "@repo/database/models/formFields";
@@ -154,6 +156,8 @@ class formService {
         validTill: formsTable.validTill,
         createdAt: formsTable.createdAt,
         updatedAt: formsTable.updatedAt,
+        allowedDomains: formsTable.allowedDomains,
+        notificationEmails: formsTable.notificationEmails,
         responses: sql<number>`cast(count(${submissionsTable.id}) as integer)`,
       })
       .from(formsTable)
@@ -345,7 +349,7 @@ class formService {
   }
 
   public async publishForm(payload: PublishFormInput) {
-    const { formId, createdBy, isPublished, visibility, validTill, notificationEmails } = payload;
+    const { formId, createdBy, isPublished, visibility, validTill, notificationEmails, allowedDomains } = payload;
     const updated = await db
       .update(formsTable)
       .set({ 
@@ -353,6 +357,7 @@ class formService {
         ...(visibility !== undefined && { visibility }),
         ...(validTill !== undefined && { validTill }),
         ...(notificationEmails !== undefined && { notificationEmails }),
+        ...(allowedDomains !== undefined && { allowedDomains }),
         updatedAt: new Date(),
       })
       .where(and(eq(formsTable.formId, formId), eq(formsTable.createdBy, createdBy)))
@@ -365,8 +370,8 @@ class formService {
     return { success: true };
   }
 
-  public async getPublicFormBySlug(payload: GetPublicFormBySlugInput) {
-    const { slug } = payload;
+  public async getPublicFormBySlug(payload: GetPublicFormBySlugInput & { token?: string }) {
+    const { slug, token } = payload;
 
     // 1. Look up the published form by slug
     const forms = await db
@@ -375,6 +380,7 @@ class formService {
         isPublished: formsTable.isPublished,
         visibility: formsTable.visibility,
         validTill: formsTable.validTill,
+        allowedDomains: formsTable.allowedDomains,
       })
       .from(formsTable)
       .where(eq(formsTable.slug, slug));
@@ -386,11 +392,31 @@ class formService {
     const form = forms[0]!;
 
     if (!form.isPublished) {
-      throw new Error("This form is not published");
+      throw new Error("This form is not accepting responses");
     }
 
     if (form.visibility === "PRIVATE") {
-      throw new Error("This form is private");
+      if (!token) {
+        throw new Error("LOGIN_REQUIRED");
+      }
+
+      let user;
+      try {
+        user = await userService.verifyUserToken(token);
+      } catch (e) {
+        throw new Error("LOGIN_REQUIRED");
+      }
+
+      if (!user || !user.email) {
+        throw new Error("LOGIN_REQUIRED");
+      }
+
+      const visitorDomain = user.email.split("@")[1]?.toLowerCase();
+      const allowed = (form.allowedDomains || []).map(d => d.trim().toLowerCase());
+
+      if (!visitorDomain || allowed.length === 0 || !allowed.includes(visitorDomain)) {
+        throw new Error("UNAUTHORIZED_DOMAIN_RESTRICTED");
+      }
     }
 
     if (form.validTill && new Date() > new Date(form.validTill)) {

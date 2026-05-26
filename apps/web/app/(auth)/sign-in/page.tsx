@@ -22,7 +22,8 @@ function SigninPage() {
       email,
       password,
     });
-    router.replace("/dashboard");
+    const callbackUrl = searchParams.get("callbackUrl");
+    router.replace(callbackUrl || "/dashboard");
   };
 
   const handleGoogleSignIn = () => {

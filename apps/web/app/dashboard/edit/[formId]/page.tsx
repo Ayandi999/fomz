@@ -114,6 +114,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const [activeTab, setActiveTab] = useState<"build" | "analytics">("build");
   const [notificationEmailsInput, setNotificationEmailsInput] = useState<string>("");
   const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
+  const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
+  const [newDomainInput, setNewDomainInput] = useState("");
 
   useEffect(() => {
     if (currentForm?.title) {
@@ -559,10 +561,21 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   }, [questions]);
 
   useEffect(() => {
-    if (currentForm) {
+    if (currentForm && showPublishPanel) {
       setPublishStatus(currentForm.isPublished);
+      setPublishVisibility(currentForm.visibility || "UNLISTED");
+      if (currentForm.validTill) {
+        const d = new Date(currentForm.validTill);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        setPublishValidTill(dateStr);
+      } else {
+        setPublishValidTill("");
+      }
+      setNotificationEmailsInput(currentForm.notificationEmails?.join(", ") || "");
+      setAllowedDomains(currentForm.allowedDomains || []);
     }
-  }, [currentForm]);
+  }, [currentForm, showPublishPanel]);
 
   useEffect(() => {
     if (!isUserLoading && !user?.id) {
@@ -1026,6 +1039,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
         visibility: publishVisibility,
         validTill: publishValidTill ? new Date(publishValidTill) : null,
         notificationEmails: parsedEmails,
+        allowedDomains,
       });
       setPublishStatus(nextPublishState);
       if (nextPublishState) {
@@ -1036,6 +1050,29 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     } catch (err) {
       console.error("Failed to toggle publish status", err);
       toast.error("Failed to update publish state.");
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    const saveToastId = toast.loading("Saving publish settings...");
+    try {
+      const parsedEmails = notificationEmailsInput
+        .split(",")
+        .map(e => e.trim())
+        .filter(Boolean);
+
+      await publishFormAsync({
+        formId,
+        isPublished: publishStatus,
+        visibility: publishVisibility,
+        validTill: publishValidTill ? new Date(publishValidTill) : null,
+        notificationEmails: parsedEmails,
+        allowedDomains,
+      });
+      toast.success("Publish settings saved!", { id: saveToastId });
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      toast.error("Failed to save settings.", { id: saveToastId });
     }
   };
 
@@ -1315,6 +1352,87 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     Separate multiple emails with commas. They will receive the compiled digest after the form expires.
                   </p>
                 </div>
+
+                {/* Whitelisted Domains for PRIVATE forms */}
+                {publishVisibility === "PRIVATE" && (
+                  <div className="flex flex-col gap-3 border-t border-white/5 pt-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      Allowed Email Domains
+                    </label>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider -mt-1">
+                      Only users logged in with email addresses belonging to these domains will be allowed to view and fill this form.
+                    </p>
+                    
+                    {/* Domain list tags */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {allowedDomains.length === 0 ? (
+                        <span className="text-[10px] text-red-400 font-bold uppercase tracking-wide">
+                          No domains whitelisted. Add at least one!
+                        </span>
+                      ) : (
+                        allowedDomains.map((dom) => (
+                          <div
+                            key={dom}
+                            className="flex items-center gap-1.5 bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-white text-[10px] font-bold px-2.5 py-1 rounded-md"
+                          >
+                            <span>{dom}</span>
+                            <button
+                              type="button"
+                              onClick={() => setAllowedDomains(prev => prev.filter(d => d !== dom))}
+                              className="text-[#FF6B35] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Add Domain Input Box */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. company.com"
+                        value={newDomainInput}
+                        onChange={(e) => setNewDomainInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const val = newDomainInput.trim().toLowerCase();
+                            if (val && !allowedDomains.includes(val)) {
+                              setAllowedDomains([...allowedDomains, val]);
+                              setNewDomainInput("");
+                            }
+                          }
+                        }}
+                        className={`${inputClass} text-xs flex-1`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = newDomainInput.trim().toLowerCase();
+                          if (val && !allowedDomains.includes(val)) {
+                            setAllowedDomains([...allowedDomains, val]);
+                            setNewDomainInput("");
+                          }
+                        }}
+                        className="px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded-lg transition-all"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Save Settings Button */}
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  disabled={isPublishing}
+                  className="w-full py-2.5 bg-[#FF6B35] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#FF6B35]/90 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#FF6B35]/10 cursor-pointer"
+                >
+                  Save Settings
+                </button>
 
                 {/* Share link (only if published) */}
                 {publishStatus && shareUrl && (

@@ -363,21 +363,6 @@ export default function Home() {
         className="fixed inset-0 w-full h-full pointer-events-none z-10 opacity-70"
       />
 
-      {/* Custom Lerp Interactive Cursor */}
-      {!prefersReducedMotion && (
-        <>
-          <div 
-            className="fixed w-2 h-2 bg-[#FF6B35] rounded-full pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
-            style={{ left: `${mousePos.x}px`, top: `${mousePos.y}px`, transition: "transform 0.05s ease-out" }}
-          />
-          <div 
-            className={`fixed rounded-full pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 border border-[#FF6B35]/40 transition-all duration-300 ${
-              cursorHovered ? "w-10 h-10 bg-[#FF6B35]/5 scale-125" : "w-6 h-6 bg-transparent"
-            }`}
-            style={{ left: `${trailPos.x}px`, top: `${trailPos.y}px` }}
-          />
-        </>
-      )}
 
       {/* 1. HERO SECTION & TOP BAR */}
       <div className="relative w-full overflow-hidden bg-[#050505] pb-24 border-b border-[#111111] inner-depth-shadow">

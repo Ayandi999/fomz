@@ -62,6 +62,8 @@ export default function DashboardPage() {
   const [modalShareTab, setModalShareTab] = useState<"link" | "qr">("link");
   const [modalLinkCopied, setModalLinkCopied] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [modalAllowedDomains, setModalAllowedDomains] = useState<string[]>([]);
+  const [modalNewDomainInput, setModalNewDomainInput] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -146,6 +148,7 @@ export default function DashboardPage() {
     setModalIsPublished(form.isPublished);
     setModalVisibility(form.visibility || "UNLISTED");
     setModalValidTill(form.validTill ? new Date(form.validTill).toISOString().slice(0, 16) : "");
+    setModalAllowedDomains(form.allowedDomains || []);
     setModalShareTab(defaultTab);
     setShowPublishModal(true);
   };
@@ -160,6 +163,7 @@ export default function DashboardPage() {
         isPublished: nextPublishState,
         visibility: modalVisibility,
         validTill: modalValidTill ? new Date(modalValidTill) : null,
+        allowedDomains: modalAllowedDomains,
       });
       setModalIsPublished(nextPublishState);
       toast.success(nextPublishState ? "Form published successfully!" : "Form unpublished.", { id: publishToastId });
@@ -180,6 +184,7 @@ export default function DashboardPage() {
         isPublished: modalIsPublished,
         visibility: modalVisibility,
         validTill: modalValidTill ? new Date(modalValidTill) : null,
+        allowedDomains: modalAllowedDomains,
       });
       toast.success("Publish settings saved!", { id: publishToastId });
       await refetchForms();
@@ -489,8 +494,8 @@ export default function DashboardPage() {
                         </span>
                       )}
 
-                      {/* Hover Actions - hidden by default and fade in on row hover */}
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" onClick={e => e.stopPropagation()}>
+                      {/* Actions */}
+                      <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => router.push(`/dashboard/edit/${form.id}`)}
@@ -732,6 +737,77 @@ export default function DashboardPage() {
                   className={`${inputClass} text-xs`}
                 />
               </div>
+
+              {/* Whitelisted Domains for PRIVATE forms */}
+              {modalVisibility === "PRIVATE" && (
+                <div className="flex flex-col gap-3 border-t border-border pt-4">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                    Allowed Email Domains
+                  </label>
+                  <p className="text-[9px] text-text-secondary uppercase tracking-wider -mt-1">
+                    Only users logged in with email addresses belonging to these domains will be allowed to view and fill this form.
+                  </p>
+                  
+                  {/* Domain list tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {modalAllowedDomains.length === 0 ? (
+                      <span className="text-[10px] text-red-400 font-bold uppercase tracking-wide">
+                        No domains whitelisted. Add at least one!
+                      </span>
+                    ) : (
+                      modalAllowedDomains.map((dom) => (
+                        <div
+                          key={dom}
+                          className="flex items-center gap-1.5 bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-white text-[10px] font-bold px-2.5 py-1 rounded"
+                        >
+                          <span>{dom}</span>
+                          <button
+                            type="button"
+                            onClick={() => setModalAllowedDomains(prev => prev.filter(d => d !== dom))}
+                            className="text-[#FF6B35] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Domain Input Box */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. company.com"
+                      value={modalNewDomainInput}
+                      onChange={(e) => setModalNewDomainInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const val = modalNewDomainInput.trim().toLowerCase();
+                          if (val && !modalAllowedDomains.includes(val)) {
+                            setModalAllowedDomains([...modalAllowedDomains, val]);
+                            setModalNewDomainInput("");
+                          }
+                        }
+                      }}
+                      className={`${inputClass} text-xs flex-1`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = modalNewDomainInput.trim().toLowerCase();
+                        if (val && !modalAllowedDomains.includes(val)) {
+                          setModalAllowedDomains([...modalAllowedDomains, val]);
+                          setModalNewDomainInput("");
+                        }
+                      }}
+                      className="px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded transition-all cursor-pointer"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <button
                 type="button"

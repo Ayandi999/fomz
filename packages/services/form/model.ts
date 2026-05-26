@@ -80,6 +80,7 @@ export const publishFormInput = z.object({
   visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).optional().describe("Visibility level"),
   validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
   notificationEmails: z.array(z.string()).optional().describe("Additional recipient emails for post-expiry digest"),
+  allowedDomains: z.array(z.string()).optional().describe("Allowed email domains for private forms"),
 });
 
 export type PublishFormInput = z.infer<typeof publishFormInput>;

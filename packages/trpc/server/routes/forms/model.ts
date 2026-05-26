@@ -30,6 +30,8 @@ export const getUserFormsOutputModel = z.array(
     validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
     createdAt: z.coerce.date().nullable().optional().describe("Form creation date"),
     updatedAt: z.coerce.date().nullable().optional().describe("Form update date"),
+    allowedDomains: z.array(z.string()).nullable().optional().describe("Allowed email domains for private forms"),
+    notificationEmails: z.array(z.string()).nullable().optional().describe("Digest notification emails"),
     responses: z.coerce.number().describe("Number of responses"),
   })
 );
@@ -129,6 +131,7 @@ export const publishFormInputModel = z.object({
   visibility: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]).optional().describe("Visibility level"),
   validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
   notificationEmails: z.array(z.string()).optional().describe("Additional recipient emails"),
+  allowedDomains: z.array(z.string()).optional().describe("Allowed email domains for private forms"),
 });
 
 export const publishFormOutputModel = z.object({
