@@ -1,12 +1,13 @@
 import { trpc } from "~/trpc/client";
 
-export const useGetPublicForm = (slug: string) => {
+export const useGetPublicForm = (slug: string, enteredPassword?: string) => {
   const {
     data,
     isLoading,
     isError,
     error,
-  } = trpc.forms.getPublicFormBySlug.useQuery({ slug }, {
+    refetch,
+  } = trpc.forms.getPublicFormBySlug.useQuery({ slug, enteredPassword }, {
     enabled: !!slug,
     retry: false,
   });
@@ -17,5 +18,6 @@ export const useGetPublicForm = (slug: string) => {
     isLoading,
     isError,
     error,
+    refetch,
   };
 };

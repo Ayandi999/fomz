@@ -81,12 +81,15 @@ export const publishFormInput = z.object({
   validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
   notificationEmails: z.array(z.string()).optional().describe("Additional recipient emails for post-expiry digest"),
   allowedDomains: z.array(z.string()).optional().describe("Allowed email domains for private forms"),
+  isPasswordProtected: z.boolean().optional().describe("Whether form is password protected"),
+  password: z.string().optional().describe("Password for access protection"),
 });
 
 export type PublishFormInput = z.infer<typeof publishFormInput>;
 
 export const getPublicFormBySlugInput = z.object({
   slug: z.string().describe("Form URL slug"),
+  enteredPassword: z.string().optional().describe("Respondent-entered access password"),
 });
 
 export type GetPublicFormBySlugInput = z.infer<typeof getPublicFormBySlugInput>;

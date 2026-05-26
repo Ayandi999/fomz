@@ -8,7 +8,8 @@ import {
   ChevronDown, Globe as GlobeIcon, Phone as PhoneIcon, 
   Mail, Star, CheckSquare, AlignLeft, Type, Hash, Calendar,
   ArrowRight, ArrowLeft, Check, Loader2, Upload, Music,
-  RefreshCw, AlertCircle, FileText, Image as ImageIcon, Video as VideoIcon
+  RefreshCw, AlertCircle, FileText, Image as ImageIcon, Video as VideoIcon,
+  Lock
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -60,13 +61,23 @@ const COUNTRY_CODES_FALLBACK = [
 export default function PublicFormPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const router = useRouter();
-  const { formId, fields, isLoading, isError, error } = useGetPublicForm(slug);
+
+  const [passwordInput, setPasswordInput] = useState("");
+  const [submittedPassword, setSubmittedPassword] = useState<string | undefined>(undefined);
+
+  const { formId, fields, isLoading, isError, error } = useGetPublicForm(slug, submittedPassword);
   
   useEffect(() => {
     if (isError && (error as any)?.message === "LOGIN_REQUIRED") {
       router.push(`/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
     }
   }, [isError, error, router]);
+
+  useEffect(() => {
+    if (isError && (error as any)?.message === "INCORRECT_PASSWORD") {
+      toast.error("please enter the correct password");
+    }
+  }, [isError, error]);
 
   const { submitResponseAsync, isPending: isSubmitting } = useSubmitFormResponse();
 
@@ -148,6 +159,48 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-[#FF6B35]" />
           <p className="text-xs font-black uppercase tracking-widest text-neutral-400">Loading form…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (isError && ((error as any)?.message === "PASSWORD_REQUIRED" || (error as any)?.message === "INCORRECT_PASSWORD")) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white p-6">
+        <div className="border border-neutral-800/40 bg-[#111111] p-8 max-w-md w-full flex flex-col gap-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="w-16 h-16 rounded-full bg-[#FF6B35]/10 flex items-center justify-center mx-auto text-[#FF6B35]">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-black uppercase tracking-tight text-white">Password Protected</h1>
+            <p className="text-xs text-[#A1A1A1] uppercase tracking-wider leading-relaxed mt-2">
+              This form is password protected. Please enter the password to access it.
+            </p>
+          </div>
+          
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (!passwordInput.trim()) {
+              toast.error("Please enter a password");
+              return;
+            }
+            setSubmittedPassword(passwordInput);
+          }} className="flex flex-col gap-4">
+            <input
+              type="password"
+              placeholder="Enter form password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="bg-transparent text-white text-lg py-3 px-4 border border-neutral-800 rounded-xl focus:outline-none focus:border-[#FF6B35] transition-colors placeholder-[#4A4A4A]"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-[#FF6B35] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#FF6B35]/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#FF6B35]/15"
+            >
+              Unlock Form
+            </button>
+          </form>
         </div>
       </main>
     );

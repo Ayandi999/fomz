@@ -110,6 +110,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const [publishValidTill, setPublishValidTill] = useState<string>("");
   const [shareTab, setShareTab] = useState<"link" | "qr">("link");
   const [linkCopied, setLinkCopied] = useState<boolean>(false);
+  const [publishIsPasswordProtected, setPublishIsPasswordProtected] = useState<boolean>(false);
+  const [publishPassword, setPublishPassword] = useState<string>("");
   
   const [activeTab, setActiveTab] = useState<"build" | "analytics">("build");
   const [notificationEmailsInput, setNotificationEmailsInput] = useState<string>("");
@@ -574,6 +576,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
       }
       setNotificationEmailsInput(currentForm.notificationEmails?.join(", ") || "");
       setAllowedDomains(currentForm.allowedDomains || []);
+      setPublishIsPasswordProtected(!!currentForm.isPasswordProtected);
+      setPublishPassword(currentForm.isPasswordProtected ? "••••••••" : "");
     }
   }, [currentForm, showPublishPanel]);
 
@@ -1026,12 +1030,18 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   };
 
   const handleTogglePublish = async () => {
+    if (publishIsPasswordProtected && !publishPassword.trim()) {
+      toast.error("Please enter a password when password protection is enabled.");
+      return;
+    }
     try {
       const nextPublishState = !publishStatus;
       const parsedEmails = notificationEmailsInput
         .split(",")
         .map(e => e.trim())
         .filter(Boolean);
+
+      const finalPassword = (publishPassword === "••••••••" || !publishPassword) ? undefined : publishPassword;
 
       await publishFormAsync({
         formId,
@@ -1040,6 +1050,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
         validTill: publishValidTill ? new Date(publishValidTill) : null,
         notificationEmails: parsedEmails,
         allowedDomains,
+        isPasswordProtected: publishIsPasswordProtected,
+        password: finalPassword,
       });
       setPublishStatus(nextPublishState);
       if (nextPublishState) {
@@ -1054,12 +1066,18 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   };
 
   const handleSaveSettings = async () => {
+    if (publishIsPasswordProtected && !publishPassword.trim()) {
+      toast.error("Please enter a password when password protection is enabled.");
+      return;
+    }
     const saveToastId = toast.loading("Saving publish settings...");
     try {
       const parsedEmails = notificationEmailsInput
         .split(",")
         .map(e => e.trim())
         .filter(Boolean);
+
+      const finalPassword = (publishPassword === "••••••••" || !publishPassword) ? undefined : publishPassword;
 
       await publishFormAsync({
         formId,
@@ -1068,6 +1086,8 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
         validTill: publishValidTill ? new Date(publishValidTill) : null,
         notificationEmails: parsedEmails,
         allowedDomains,
+        isPasswordProtected: publishIsPasswordProtected,
+        password: finalPassword,
       });
       toast.success("Publish settings saved!", { id: saveToastId });
     } catch (err) {
@@ -1258,27 +1278,33 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
         {/* Publish / Share Panel Modal */}
         {showPublishPanel && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
             onClick={() => setShowPublishPanel(false)}
           >
             <div
-              className="bg-background border border-border w-full max-w-md flex flex-col gap-0 shadow-2xl"
+              className="bg-card border border-border w-full max-w-md flex flex-col gap-0 shadow-2xl text-foreground rounded-lg overflow-hidden animate-fade-in"
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="border-b-2 border-neutral-900  px-6 py-4 flex items-center justify-between">
-                <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                  <ExternalLink className="w-4 h-4 text-orange-500" /> Publish & Share
+              <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+                <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-foreground">
+                  <ExternalLink className="w-4 h-4 text-primary animate-pulse" /> Publish & Share
                 </h2>
-                <button onClick={() => setShowPublishPanel(false)} className="text-muted-foreground hover:text-foreground text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none">✕</button>
+                <button
+                  type="button"
+                  onClick={() => setShowPublishPanel(false)}
+                  className="text-text-secondary hover:text-foreground text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none"
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="flex flex-col gap-6 px-6 py-6">
                 {/* Publish toggle */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-black uppercase tracking-widest">{publishStatus ? "Published" : "Unpublished"}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                    <p className="text-sm font-black uppercase tracking-widest text-foreground">{publishStatus ? "Published" : "Unpublished"}</p>
+                    <p className="text-[10px] text-text-secondary uppercase tracking-wider mt-0.5">
                       {publishStatus ? "Your form is live and accepting responses." : "Your form is a draft — not visible to the public."}
                     </p>
                   </div>
@@ -1286,7 +1312,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     type="button"
                     onClick={handleTogglePublish}
                     disabled={isPublishing}
-                    className={`${publishStatus ? buttonPrimaryClass : buttonSecondaryClass} h-9 px-4 text-xs flex items-center gap-1.5`}
+                    className={`${publishStatus ? buttonPrimaryClass : buttonSecondaryClass + " bg-card border-border hover:bg-surface-hover text-foreground"} h-9 px-4 text-xs flex items-center gap-1.5`}
                   >
                     {isPublishing ? "Updating…" : publishStatus ? "Unpublish" : "Publish Now"}
                   </button>
@@ -1294,20 +1320,24 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                 {/* Visibility */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Visibility</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Visibility</label>
                   <div className="grid grid-cols-3 gap-2">
                     {(["PUBLIC", "UNLISTED", "PRIVATE"] as const).map(v => (
                       <button
                         key={v}
                         type="button"
                         onClick={() => setPublishVisibility(v)}
-                        className={`border-2 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${publishVisibility === v ? "border-neutral-900  bg-neutral-900 text-white dark:bg-white dark:text-primary-foreground" : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-600"}`}
+                        className={`border py-2 text-[10px] font-black uppercase tracking-widest transition-colors rounded ${
+                          publishVisibility === v
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border hover:border-border-active bg-card text-foreground"
+                        }`}
                       >
                         {v}
                       </button>
                     ))}
                   </div>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                  <p className="text-[9px] text-text-secondary uppercase tracking-wider">
                     {publishVisibility === "PUBLIC" && "Anyone can find and fill this form."}
                     {publishVisibility === "UNLISTED" && "Only people with the link can access."}
                     {publishVisibility === "PRIVATE" && "Form is hidden from all respondents."}
@@ -1316,7 +1346,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                 {/* Expiration */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Expiration Date (optional)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Expiration Date (optional)</label>
                   <input
                     type="datetime-local"
                     value={publishValidTill}
@@ -1340,7 +1370,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                 {/* Expiration Digests Extra Recipients */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Digest Notification Emails (optional)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Digest Notification Emails (optional)</label>
                   <input
                     type="text"
                     placeholder="extra1@example.com, extra2@example.com"
@@ -1348,18 +1378,51 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     onChange={e => setNotificationEmailsInput(e.target.value)}
                     className={`${inputClass} text-xs`}
                   />
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                  <p className="text-[9px] text-text-secondary uppercase tracking-wider">
                     Separate multiple emails with commas. They will receive the compiled digest after the form expires.
                   </p>
                 </div>
 
+                {/* Password Protection */}
+                {publishVisibility !== "PRIVATE" && (
+                  <div className="flex flex-col gap-3 border-t border-border pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                          Password Protection
+                        </label>
+                        <p className="text-[9px] text-text-secondary uppercase tracking-wider mt-0.5">
+                          Require respondents to enter a password to access the form.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={publishIsPasswordProtected}
+                        onChange={(e) => setPublishIsPasswordProtected(e.target.checked)}
+                        className="w-4 h-4 accent-[#FF6B35] cursor-pointer"
+                      />
+                    </div>
+                    {publishIsPasswordProtected && (
+                      <div className="flex flex-col gap-1.5">
+                        <input
+                          type="password"
+                          placeholder="Enter access password"
+                          value={publishPassword}
+                          onChange={(e) => setPublishPassword(e.target.value)}
+                          className={`${inputClass} text-xs`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Whitelisted Domains for PRIVATE forms */}
                 {publishVisibility === "PRIVATE" && (
-                  <div className="flex flex-col gap-3 border-t border-white/5 pt-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <div className="flex flex-col gap-3 border-t border-border pt-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
                       Allowed Email Domains
                     </label>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider -mt-1">
+                    <p className="text-[9px] text-text-secondary uppercase tracking-wider -mt-1">
                       Only users logged in with email addresses belonging to these domains will be allowed to view and fill this form.
                     </p>
                     
@@ -1373,7 +1436,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                         allowedDomains.map((dom) => (
                           <div
                             key={dom}
-                            className="flex items-center gap-1.5 bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-white text-[10px] font-bold px-2.5 py-1 rounded-md"
+                            className="flex items-center gap-1.5 bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-white text-[10px] font-bold px-2.5 py-1 rounded"
                           >
                             <span>{dom}</span>
                             <button
@@ -1416,7 +1479,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             setNewDomainInput("");
                           }
                         }}
-                        className="px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded-lg transition-all"
+                        className="px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded transition-all cursor-pointer"
                       >
                         Add
                       </button>
@@ -1429,27 +1492,35 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   type="button"
                   onClick={handleSaveSettings}
                   disabled={isPublishing}
-                  className="w-full py-2.5 bg-[#FF6B35] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#FF6B35]/90 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#FF6B35]/10 cursor-pointer"
+                  className={`${buttonSecondaryClass} bg-card border-border hover:bg-surface-hover text-foreground w-full h-10 text-xs`}
                 >
                   Save Settings
                 </button>
 
                 {/* Share link (only if published) */}
                 {publishStatus && shareUrl && (
-                  <div className="border-t-2 border-neutral-200 dark:border-neutral-800 pt-4 flex flex-col gap-3">
+                  <div className="border-t border-border pt-4 flex flex-col gap-3">
                     {/* Tab switcher */}
-                    <div className="flex border-2 border-neutral-200 dark:border-neutral-800">
+                    <div className="flex border border-border rounded overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setShareTab("link")}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "link" ? "bg-neutral-900 text-white dark:bg-white dark:text-primary-foreground" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer ${
+                          shareTab === "link"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-surface-hover bg-card text-foreground"
+                        }`}
                       >
                         <LinkIcon className="w-3 h-3" /> Link
                       </button>
                       <button
                         type="button"
                         onClick={() => setShareTab("qr")}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${shareTab === "qr" ? "bg-neutral-900 text-white dark:bg-white dark:text-primary-foreground" : "hover:bg-neutral-100 dark:hover:bg-neutral-900"}`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer ${
+                          shareTab === "qr"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-surface-hover bg-card text-foreground"
+                        }`}
                       >
                         <QrCode className="w-3 h-3" /> QR Code
                       </button>
@@ -1483,7 +1554,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
                     {shareTab === "qr" && (
                       <div className="flex flex-col items-center gap-3 py-2">
-                        <div className="border-2 border-neutral-200 dark:border-neutral-800 p-4 bg-white">
+                        <div className="border border-border p-4 bg-white rounded">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`}
@@ -1493,7 +1564,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             className="block"
                           />
                         </div>
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-widest text-center">Scan to open the form</p>
+                        <p className="text-[9px] text-text-secondary uppercase tracking-widest text-center">Scan to open the form</p>
                       </div>
                     )}
                   </div>

@@ -64,6 +64,8 @@ export default function DashboardPage() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [modalAllowedDomains, setModalAllowedDomains] = useState<string[]>([]);
   const [modalNewDomainInput, setModalNewDomainInput] = useState("");
+  const [modalIsPasswordProtected, setModalIsPasswordProtected] = useState<boolean>(false);
+  const [modalPassword, setModalPassword] = useState<string>("");
 
   useEffect(() => {
     setMounted(true);
@@ -149,21 +151,31 @@ export default function DashboardPage() {
     setModalVisibility(form.visibility || "UNLISTED");
     setModalValidTill(form.validTill ? new Date(form.validTill).toISOString().slice(0, 16) : "");
     setModalAllowedDomains(form.allowedDomains || []);
+    setModalIsPasswordProtected(!!form.isPasswordProtected);
+    setModalPassword(form.isPasswordProtected ? "••••••••" : "");
     setModalShareTab(defaultTab);
     setShowPublishModal(true);
   };
 
   const handleModalTogglePublish = async () => {
     if (!selectedFormForModal) return;
+    if (modalIsPasswordProtected && !modalPassword.trim()) {
+      toast.error("Please enter a password when password protection is enabled.");
+      return;
+    }
     const nextPublishState = !modalIsPublished;
     const publishToastId = toast.loading(nextPublishState ? "Publishing form..." : "Unpublishing form...");
     try {
+      const finalPassword = (modalPassword === "••••••••" || !modalPassword) ? undefined : modalPassword;
+
       await publishFormAsync({
         formId: selectedFormForModal.id,
         isPublished: nextPublishState,
         visibility: modalVisibility,
         validTill: modalValidTill ? new Date(modalValidTill) : null,
         allowedDomains: modalAllowedDomains,
+        isPasswordProtected: modalIsPasswordProtected,
+        password: finalPassword,
       });
       setModalIsPublished(nextPublishState);
       toast.success(nextPublishState ? "Form published successfully!" : "Form unpublished.", { id: publishToastId });
@@ -177,14 +189,22 @@ export default function DashboardPage() {
 
   const handleModalSaveSettings = async () => {
     if (!selectedFormForModal) return;
+    if (modalIsPasswordProtected && !modalPassword.trim()) {
+      toast.error("Please enter a password when password protection is enabled.");
+      return;
+    }
     const publishToastId = toast.loading("Saving publish settings...");
     try {
+      const finalPassword = (modalPassword === "••••••••" || !modalPassword) ? undefined : modalPassword;
+
       await publishFormAsync({
         formId: selectedFormForModal.id,
         isPublished: modalIsPublished,
         visibility: modalVisibility,
         validTill: modalValidTill ? new Date(modalValidTill) : null,
         allowedDomains: modalAllowedDomains,
+        isPasswordProtected: modalIsPasswordProtected,
+        password: finalPassword,
       });
       toast.success("Publish settings saved!", { id: publishToastId });
       await refetchForms();
@@ -737,6 +757,39 @@ export default function DashboardPage() {
                   className={`${inputClass} text-xs`}
                 />
               </div>
+
+              {/* Password Protection */}
+              {modalVisibility !== "PRIVATE" && (
+                <div className="flex flex-col gap-3 border-t border-border pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                        Password Protection
+                      </label>
+                      <p className="text-[9px] text-text-secondary uppercase tracking-wider mt-0.5">
+                        Require respondents to enter a password to access the form.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={modalIsPasswordProtected}
+                      onChange={(e) => setModalIsPasswordProtected(e.target.checked)}
+                      className="w-4 h-4 accent-[#FF6B35] cursor-pointer"
+                    />
+                  </div>
+                  {modalIsPasswordProtected && (
+                    <div className="flex flex-col gap-1.5">
+                      <input
+                        type="password"
+                        placeholder="Enter access password"
+                        value={modalPassword}
+                        onChange={(e) => setModalPassword(e.target.value)}
+                        className={`${inputClass} text-xs`}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Whitelisted Domains for PRIVATE forms */}
               {modalVisibility === "PRIVATE" && (

@@ -32,6 +32,8 @@ export const getUserFormsOutputModel = z.array(
     updatedAt: z.coerce.date().nullable().optional().describe("Form update date"),
     allowedDomains: z.array(z.string()).nullable().optional().describe("Allowed email domains for private forms"),
     notificationEmails: z.array(z.string()).nullable().optional().describe("Digest notification emails"),
+    isPasswordProtected: z.boolean().nullable().optional().describe("Whether form is password protected"),
+    password: z.string().nullable().optional().describe("Password for access protection"),
     responses: z.coerce.number().describe("Number of responses"),
   })
 );
@@ -132,6 +134,8 @@ export const publishFormInputModel = z.object({
   validTill: z.coerce.date().nullable().optional().describe("Expiration date"),
   notificationEmails: z.array(z.string()).optional().describe("Additional recipient emails"),
   allowedDomains: z.array(z.string()).optional().describe("Allowed email domains for private forms"),
+  isPasswordProtected: z.boolean().optional().describe("Whether form is password protected"),
+  password: z.string().optional().describe("Password for access protection"),
 });
 
 export const publishFormOutputModel = z.object({
@@ -163,6 +167,7 @@ const publicFieldModel = z.object({
 
 export const getPublicFormBySlugInputModel = z.object({
   slug: z.string().describe("Unique form URL slug"),
+  enteredPassword: z.string().optional().describe("Respondent-entered access password"),
 });
 
 export const getPublicFormBySlugOutputModel = z.object({

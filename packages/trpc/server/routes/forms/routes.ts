@@ -199,7 +199,7 @@ export const formsRouter = router({
     .output(publishFormOutputModel)
     .mutation(async ({ input, ctx }) => {
       const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
-      const { formId, isPublished, visibility, validTill, notificationEmails, allowedDomains } = input;
+      const { formId, isPublished, visibility, validTill, notificationEmails, allowedDomains, isPasswordProtected, password } = input;
 
       const { success } = await formService.publishForm({
         formId,
@@ -209,6 +209,8 @@ export const formsRouter = router({
         validTill,
         notificationEmails,
         allowedDomains,
+        isPasswordProtected,
+        password,
       });
 
       return { success };
@@ -225,9 +227,9 @@ export const formsRouter = router({
     .input(getPublicFormBySlugInputModel)
     .output(getPublicFormBySlugOutputModel)
     .query(async ({ input, ctx }) => {
-      const { slug } = input;
+      const { slug, enteredPassword } = input;
       const token = getAuthenticationCookie(ctx);
-      return await formService.getPublicFormBySlug({ slug, token });
+      return await formService.getPublicFormBySlug({ slug, token, enteredPassword });
     }),
 
   submitFormResponse: publicProcedure

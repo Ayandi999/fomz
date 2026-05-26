@@ -10,6 +10,7 @@ import {
   type GetPublicFormBySlugInput,
   type SubmitFormResponseInput,
 } from "./model";
+import argon2 from 'argon2'
 import UserService from "../user/index";
 const userService = new UserService();
 import { db, and, eq, desc, inArray, lt, isNotNull, sql } from "@repo/database";
@@ -158,6 +159,8 @@ class formService {
         updatedAt: formsTable.updatedAt,
         allowedDomains: formsTable.allowedDomains,
         notificationEmails: formsTable.notificationEmails,
+        isPasswordProtected: formsTable.isPasswordProtected,
+        password: formsTable.password,
         responses: sql<number>`cast(count(${submissionsTable.id}) as integer)`,
       })
       .from(formsTable)
@@ -349,7 +352,9 @@ class formService {
   }
 
   public async publishForm(payload: PublishFormInput) {
-    const { formId, createdBy, isPublished, visibility, validTill, notificationEmails, allowedDomains } = payload;
+    const { formId, createdBy, isPublished, visibility, validTill, notificationEmails, allowedDomains, isPasswordProtected, password } = payload;
+    let hash: string | undefined = undefined;
+    if (isPasswordProtected && password) hash = await argon2.hash(password);
     const updated = await db
       .update(formsTable)
       .set({ 
@@ -358,6 +363,9 @@ class formService {
         ...(validTill !== undefined && { validTill }),
         ...(notificationEmails !== undefined && { notificationEmails }),
         ...(allowedDomains !== undefined && { allowedDomains }),
+        ...(isPasswordProtected !== undefined && { isPasswordProtected }),
+        ...(password !== undefined && isPasswordProtected && { password: hash }),
+        ...(!isPasswordProtected && { password: "" }),
         updatedAt: new Date(),
       })
       .where(and(eq(formsTable.formId, formId), eq(formsTable.createdBy, createdBy)))
@@ -371,7 +379,7 @@ class formService {
   }
 
   public async getPublicFormBySlug(payload: GetPublicFormBySlugInput & { token?: string }) {
-    const { slug, token } = payload;
+    const { slug, token, enteredPassword } = payload;
 
     // 1. Look up the published form by slug
     const forms = await db
@@ -381,6 +389,8 @@ class formService {
         visibility: formsTable.visibility,
         validTill: formsTable.validTill,
         allowedDomains: formsTable.allowedDomains,
+        isPasswordProtected: formsTable.isPasswordProtected,
+        password: formsTable.password,
       })
       .from(formsTable)
       .where(eq(formsTable.slug, slug));
@@ -393,6 +403,21 @@ class formService {
 
     if (!form.isPublished) {
       throw new Error("This form is not accepting responses");
+    }
+
+    // Password check for non-PRIVATE forms (PUBLIC / UNLISTED)
+    if (form.visibility !== "PRIVATE" && form.isPasswordProtected) {
+      if (!enteredPassword) {
+        throw new Error("PASSWORD_REQUIRED");
+      }
+      if(form.password && enteredPassword) {
+        const isCorrectPassword = await argon2.verify(form.password, enteredPassword);
+        if (!isCorrectPassword) {
+          throw new Error("INCORRECT_PASSWORD");
+        }
+      } else {
+        throw new Error("INCORRECT_PASSWORD");
+      }
     }
 
     if (form.visibility === "PRIVATE") {
