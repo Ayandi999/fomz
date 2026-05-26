@@ -2,6 +2,7 @@ import express from "express";
 import { logger } from "@repo/logger";
 import cors from "cors";
 import cookieParser from 'cookie-parser'
+import rateLimit from "express-rate-limit";
 
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { generateOpenApiDocument, createOpenApiExpressMiddleware } from "trpc-to-openapi";
@@ -30,6 +31,35 @@ app.use(
 );
 
 app.use(express.json());
+
+const lenientLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." }
+});
+
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts, please try again later." }
+});
+
+app.use((req, res, next) => {
+  const isAuthPath = 
+    req.path === "/api/verify-email" || 
+    req.path === "/api/reset-password-verify" || 
+    req.path.startsWith("/api/auth/") || 
+    req.path.startsWith("/trpc/auth.");
+
+  if (isAuthPath) {
+    return strictLimiter(req, res, next);
+  }
+  return lenientLimiter(req, res, next);
+});
 
 app.get("/", (req, res) => {
   return res.json({ message: "Streamyst is up and running..." });
