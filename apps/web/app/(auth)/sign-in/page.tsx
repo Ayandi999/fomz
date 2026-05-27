@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSignin } from "~/hooks/api/auth/useSignin";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
+import { toast } from "sonner";
 import { Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
 
 function SigninForm() {
@@ -18,12 +19,22 @@ function SigninForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { id } = await siginInUserWithEmailAndPasswordAsync({
-      email,
-      password,
-    });
-    const callbackUrl = searchParams.get("callbackUrl");
-    router.replace(callbackUrl || "/dashboard");
+    try {
+      const { id } = await siginInUserWithEmailAndPasswordAsync({
+        email,
+        password,
+      });
+      const callbackUrl = searchParams.get("callbackUrl");
+      router.replace(callbackUrl || "/dashboard");
+    } catch (error: any) {
+      if (error.message?.includes("Too many requests")) {
+        toast.error("Too many requests! Please try again later.");
+      } else if (error.message?.includes("User not found") || error.message?.includes("Invalid password")) {
+        toast.error("Invalid email or password.");
+      } else {
+        toast.error(error.message || "An internal server error occurred.");
+      }
+    }
   };
 
   const handleGoogleSignIn = () => {

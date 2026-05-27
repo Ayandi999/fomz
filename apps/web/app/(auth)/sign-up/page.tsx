@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useSignup } from "~/hooks/api/auth/useSignup";
 import { trpc } from "~/trpc/client";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ArrowRight } from "lucide-react";
 
 function SignupPage() {
@@ -18,13 +19,23 @@ function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { id } = await createUserWithEmailAndPasswordAsync({
-      firstName,
-      lastName,
-      email,
-      password,
-    });
-    router.replace(`/verify-pending?email=${encodeURIComponent(email)}`);
+    try {
+      const { id } = await createUserWithEmailAndPasswordAsync({
+        firstName,
+        lastName,
+        email,
+        password,
+      });
+      router.replace(`/verify-pending?email=${encodeURIComponent(email)}`);
+    } catch (error: any) {
+      if (error.message?.includes("Too many requests")) {
+        toast.error("Too many requests! Please try again later.");
+      } else if (error.message?.includes("already exists")) {
+        toast.error("A user with this email already exists!");
+      } else {
+        toast.error(error.message || "An internal server error occurred.");
+      }
+    }
   };
 
   const handleGoogleSignIn = () => {
