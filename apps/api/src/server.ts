@@ -14,10 +14,6 @@ import redis from "@repo/services/redis";
 import { env } from "./env";
 
 export const app = express();
-app.use(cors({
-  origin: [env.FRONTEND_URL, "http://localhost:3000", "https://fomz.site"],
-  credentials: true,
-}));
 
 const openApiDocument = generateOpenApiDocument(serverRouter, {
   title: "Streamyst OpenAPI",
