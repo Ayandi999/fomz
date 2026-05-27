@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Main black rounded square background -->
+  <rect x="25" y="25" width="150" height="150" rx="24" fill="#000000"/>
+
+  <!-- White rectangles forming the F shape -->
+  <!-- Top horizontal bar of F -->
+  <rect x="55" y="55" width="90" height="25" rx="6" fill="#FFFFFF"/>
+  <!-- Middle horizontal bar of F -->
+  <rect x="55" y="100" width="60" height="20" rx="6" fill="#FFFFFF"/>
+  <!-- Bottom horizontal bar of F -->
+  <rect x="55" y="140" width="40" height="20" rx="6" fill="#FFFFFF"/>
+
+  <!-- Orange accent bar -->
+  <rect x="125" y="100" width="20" height="20" rx="6" fill="#FF6B00"/>
+
+  <!-- Orange dot accent -->
+  <circle cx="145" cy="150" r="10" fill="#FF6B00"/>
+</svg>
