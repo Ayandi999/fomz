@@ -19,6 +19,7 @@ import { formField } from "@repo/database/models/formFields";
 import { submissionsTable } from "@repo/database/models/submissions";
 import { answersTable } from "@repo/database/models/answers";
 import { usersTable } from "@repo/database/models/user";
+import { themesTable } from "@repo/database/models/theme";
 import { sendEmail } from "../clients/mail";
 import { cloudinary } from "../clients/cloudinary";
 
@@ -162,11 +163,14 @@ class formService {
         isPasswordProtected: formsTable.isPasswordProtected,
         password: formsTable.password,
         responses: sql<number>`cast(count(${submissionsTable.id}) as integer)`,
+        themeId: formsTable.themeId,
+        themeCode: themesTable.code,
       })
       .from(formsTable)
       .leftJoin(submissionsTable, eq(formsTable.formId, submissionsTable.formId))
+      .leftJoin(themesTable, eq(formsTable.themeId, themesTable.id))
       .where(eq(formsTable.createdBy, createdBy))
-      .groupBy(formsTable.formId)
+      .groupBy(formsTable.formId, themesTable.id)
       .orderBy(desc(formsTable.createdAt));
 
     return forms;
@@ -421,8 +425,11 @@ class formService {
         allowedDomains: formsTable.allowedDomains,
         isPasswordProtected: formsTable.isPasswordProtected,
         password: formsTable.password,
+        themeId: formsTable.themeId,
+        themeCode: themesTable.code,
       })
       .from(formsTable)
+      .leftJoin(themesTable, eq(formsTable.themeId, themesTable.id))
       .where(eq(formsTable.slug, slug));
 
     if (!forms || forms.length === 0) {
@@ -505,6 +512,8 @@ class formService {
     return {
       formId: form.formId,
       fields,
+      themeId: form.themeId,
+      themeCode: form.themeCode,
     };
   }
 
@@ -517,6 +526,7 @@ class formService {
         formId: formsTable.formId,
         isPublished: formsTable.isPublished,
         validTill: formsTable.validTill,
+        visibility:formsTable.visibility
       })
       .from(formsTable)
       .where(eq(formsTable.formId, formId));
@@ -893,6 +903,53 @@ class formService {
     } catch (error) {
       console.error("Error checking or sending expired form digests:", error);
     }
+  }
+
+  public async getThemes() {
+    const themes = await db
+      .select({
+        id: themesTable.id,
+        name: themesTable.name,
+      })
+      .from(themesTable);
+    return themes;
+  }
+
+  public async getTheme(themeId: string) {
+    const themes = await db
+      .select({
+        id: themesTable.id,
+        name: themesTable.name,
+        code: themesTable.code,
+      })
+      .from(themesTable)
+      .where(eq(themesTable.id, themeId));
+
+    if (!themes || themes.length === 0) {
+      throw new Error("Theme not found");
+    }
+    return themes[0]!;
+  }
+
+  public async updateFormTheme(payload: { formId: string; createdBy: string; themeId: string | null }) {
+    const { formId, createdBy, themeId } = payload;
+
+    // Verify form belongs to creator
+    const form = await db
+      .select({ id: formsTable.formId })
+      .from(formsTable)
+      .where(and(eq(formsTable.formId, formId), eq(formsTable.createdBy, createdBy)));
+
+    if (!form || form.length === 0) {
+      throw new Error("Form not found or you do not have permission to modify it");
+    }
+
+    await db
+      .update(formsTable)
+      .set({ themeId })
+      .where(eq(formsTable.formId, formId));
+
+    return { success: true };
   }
 }
 

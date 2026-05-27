@@ -25,6 +25,12 @@ import {
   getFormAnalyticsOutputModel,
   getRecentSubmissionsInputModel,
   getRecentSubmissionsOutputModel,
+  getThemesInputModel,
+  getThemesOutputModel,
+  getThemeInputModel,
+  getThemeOutputModel,
+  updateFormThemeInputModel,
+  updateFormThemeOutputModel,
 } from "./model";
 import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { formService, userService } from "../../services";
@@ -295,5 +301,59 @@ export const formsRouter = router({
       const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
       const recentSubmissions = await formService.getRecentSubmissions(createdBy);
       return recentSubmissions;
+    }),
+
+  getThemes: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/getThemes",
+        tags: TAGS,
+      },
+    })
+    .input(getThemesInputModel)
+    .output(getThemesOutputModel)
+    .query(async () => {
+      const themes = await formService.getThemes();
+      return themes;
+    }),
+
+  getTheme: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/getTheme",
+        tags: TAGS,
+      },
+    })
+    .input(getThemeInputModel)
+    .output(getThemeOutputModel)
+    .mutation(async ({ input }) => {
+      const { themeId } = input;
+      const theme = await formService.getTheme(themeId);
+      return theme;
+    }),
+
+  updateFormTheme: autheticatedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/updateFormTheme",
+        tags: TAGS,
+      },
+    })
+    .input(updateFormThemeInputModel)
+    .output(updateFormThemeOutputModel)
+    .mutation(async ({ input, ctx }) => {
+      const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
+      const { formId, themeId } = input;
+
+      const { success } = await formService.updateFormTheme({
+        formId,
+        createdBy,
+        themeId,
+      });
+
+      return { success };
     }),
 });

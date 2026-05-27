@@ -83,6 +83,53 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // Dynamic Themes state
+  const { data: themes } = trpc.forms.getThemes.useQuery();
+  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
+  const [activeThemeCss, setActiveThemeCss] = useState<string>("");
+
+  const getThemeMutation = trpc.forms.getTheme.useMutation({
+    onSuccess: (data: { code: { css: string } }) => {
+      setActiveThemeCss(data.code.css);
+    }
+  });
+
+  const updateThemeMutation = trpc.forms.updateFormTheme.useMutation();
+
+  const selectedThemeIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    selectedThemeIdRef.current = selectedThemeId;
+  }, [selectedThemeId]);
+
+  const handleThemeChange = async (themeId: string | null) => {
+    setSelectedThemeId(themeId);
+    setIsDirty(true);
+    isDirtyRef.current = true;
+    if (themeId) {
+      try {
+        const t = await getThemeMutation.mutateAsync({ themeId });
+        setActiveThemeCss(t.code.css);
+        toast.success(`Theme "${t.name}" loaded!`);
+      } catch (err) {
+        toast.error("Failed to load theme styles");
+      }
+    } else {
+      setActiveThemeCss("");
+    }
+  };
+
+  // Sync theme when form data is fetched
+  useEffect(() => {
+    if (currentForm && currentForm.themeId) {
+      setSelectedThemeId(currentForm.themeId);
+      if (currentForm.themeCode?.css) {
+        setActiveThemeCss(currentForm.themeCode.css);
+      } else {
+        getThemeMutation.mutate({ themeId: currentForm.themeId });
+      }
+    }
+  }, [currentForm?.themeId, currentForm?.themeCode?.css]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -675,6 +722,12 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
         fields: putFields,
       });
     }
+
+    // Save theme configuration draft as well
+    await updateThemeMutation.mutateAsync({
+      formId,
+      themeId: selectedThemeIdRef.current,
+    });
   };
 
   // Component Unmount hook for background autosave
@@ -998,6 +1051,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     setSaveStatus("saving");
     try {
       await executeAutosave(questions);
+      await updateThemeMutation.mutateAsync({ formId, themeId: selectedThemeId });
       setSaveStatus("saved");
       setIsDirty(false);
       isDirtyRef.current = false;
@@ -1123,6 +1177,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center p-4 py-8 bg-[#0F0F0F] text-white">
+      {activeThemeCss && (
+        <style dangerouslySetInnerHTML={{ __html: activeThemeCss }} />
+      )}
       <div className="w-full max-w-none flex flex-col gap-6 px-4 lg:px-8">
         
         {/* Navigation Bar - completely custom styled, no borders, ambient elevation */}
@@ -1247,6 +1304,23 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
               >
                 Settings
               </button>
+
+              {/* Theme Dropdown */}
+              <div className="border-l border-[#1F1F1F] h-4 mx-1"></div>
+              <div className="relative flex items-center">
+                <select
+                  value={selectedThemeId || ""}
+                  onChange={(e) => handleThemeChange(e.target.value || null)}
+                  className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer rounded-md border-none bg-[#161616] text-[#A1A1A1] hover:text-white hover:bg-[#1C1C1C] outline-none"
+                >
+                  <option value="">Default Theme</option>
+                  {themes?.map((t: any) => (
+                    <option key={t.id} value={t.id} className="bg-[#161616] text-white">
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Right side: Preview and time stamp */}
@@ -1326,12 +1400,13 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                       <button
                         key={v}
                         type="button"
+                        disabled={publishStatus}
                         onClick={() => setPublishVisibility(v)}
                         className={`border py-2 text-[10px] font-black uppercase tracking-widest transition-colors rounded ${
                           publishVisibility === v
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-border hover:border-border-active bg-card text-foreground"
-                        }`}
+                        } ${publishStatus ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
                       >
                         {v}
                       </button>
@@ -1349,8 +1424,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Expiration Date (optional)</label>
                   <input
                     type="datetime-local"
+                    disabled={publishStatus}
                     value={publishValidTill}
-                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    onClick={(e) => !publishStatus && e.currentTarget.showPicker?.()}
                     onChange={e => {
                       const selectedDate = e.target.value;
                       if (selectedDate && new Date(selectedDate) < new Date()) {
@@ -1359,9 +1435,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                       }
                       setPublishValidTill(selectedDate);
                     }}
-                    className={`${inputClass} text-xs`}
+                    className={`${inputClass} text-xs ${publishStatus ? "opacity-40 cursor-not-allowed" : ""}`}
                   />
-                  {publishValidTill && (
+                  {publishValidTill && !publishStatus && (
                     <button type="button" onClick={() => setPublishValidTill("")} className="text-[9px] text-red-500 hover:text-red-700 font-bold uppercase tracking-wider text-left cursor-pointer bg-transparent border-none">
                       ✕ Clear expiration
                     </button>
@@ -1373,10 +1449,11 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Digest Notification Emails (optional)</label>
                   <input
                     type="text"
+                    disabled={publishStatus}
                     placeholder="extra1@example.com, extra2@example.com"
                     value={notificationEmailsInput}
                     onChange={e => setNotificationEmailsInput(e.target.value)}
-                    className={`${inputClass} text-xs`}
+                    className={`${inputClass} text-xs ${publishStatus ? "opacity-40 cursor-not-allowed" : ""}`}
                   />
                   <p className="text-[9px] text-text-secondary uppercase tracking-wider">
                     Separate multiple emails with commas. They will receive the compiled digest after the form expires.
@@ -1397,19 +1474,21 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                       </div>
                       <input
                         type="checkbox"
+                        disabled={publishStatus}
                         checked={publishIsPasswordProtected}
                         onChange={(e) => setPublishIsPasswordProtected(e.target.checked)}
-                        className="w-4 h-4 accent-[#FF6B35] cursor-pointer"
+                        className={`w-4 h-4 accent-[#FF6B35] cursor-pointer ${publishStatus ? "opacity-40 cursor-not-allowed" : ""}`}
                       />
                     </div>
                     {publishIsPasswordProtected && (
                       <div className="flex flex-col gap-1.5">
                         <input
                           type="password"
+                          disabled={publishStatus}
                           placeholder="Enter access password"
                           value={publishPassword}
                           onChange={(e) => setPublishPassword(e.target.value)}
-                          className={`${inputClass} text-xs`}
+                          className={`${inputClass} text-xs ${publishStatus ? "opacity-40 cursor-not-allowed" : ""}`}
                         />
                       </div>
                     )}
@@ -1441,8 +1520,9 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             <span>{dom}</span>
                             <button
                               type="button"
+                              disabled={publishStatus}
                               onClick={() => setAllowedDomains(prev => prev.filter(d => d !== dom))}
-                              className="text-[#FF6B35] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer"
+                              className={`text-[#FF6B35] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer ${publishStatus ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
                             >
                               ✕
                             </button>
@@ -1455,6 +1535,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                     <div className="flex gap-2">
                       <input
                         type="text"
+                        disabled={publishStatus}
                         placeholder="e.g. company.com"
                         value={newDomainInput}
                         onChange={(e) => setNewDomainInput(e.target.value)}
@@ -1468,10 +1549,11 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             }
                           }
                         }}
-                        className={`${inputClass} text-xs flex-1`}
+                        className={`${inputClass} text-xs flex-1 ${publishStatus ? "opacity-40 cursor-not-allowed" : ""}`}
                       />
                       <button
                         type="button"
+                        disabled={publishStatus}
                         onClick={() => {
                           const val = newDomainInput.trim().toLowerCase();
                           if (val && !allowedDomains.includes(val)) {
@@ -1479,7 +1561,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                             setNewDomainInput("");
                           }
                         }}
-                        className="px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded transition-all cursor-pointer"
+                        className={`px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded transition-all cursor-pointer ${publishStatus ? "opacity-40 cursor-not-allowed" : ""}`}
                       >
                         Add
                       </button>
@@ -1491,10 +1573,10 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                 <button
                   type="button"
                   onClick={handleSaveSettings}
-                  disabled={isPublishing}
-                  className={`${buttonSecondaryClass} bg-card border-border hover:bg-surface-hover text-foreground w-full h-10 text-xs`}
+                  disabled={publishStatus || isPublishing}
+                  className={`${buttonSecondaryClass} bg-card border-border hover:bg-surface-hover text-foreground w-full h-10 text-xs ${publishStatus ? "opacity-40 cursor-not-allowed" : ""}`}
                 >
-                  Save Settings
+                  {publishStatus ? "Form is Live (Unpublish to Edit Settings)" : "Save Settings"}
                 </button>
 
                 {/* Share link (only if published) */}
@@ -1691,7 +1773,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                   </div>
 
                   {/* Typeform Live Slide Preview Canvas */}
-                  <div className="flex flex-col gap-6 py-20 px-10 bg-background/30 border border-dashed border-border rounded-lg min-h-[48vh] justify-center relative">
+                  <div className="preview-container flex flex-col gap-6 py-20 px-10 bg-background/30 border border-dashed border-border rounded-lg min-h-[48vh] justify-center relative">
                     <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
                       
                       {/* Live editable question title & description */}
@@ -2699,7 +2781,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
         {/* Fullscreen Form Preview Modal */}
         {isPreviewOpen && (
-          <div className="fixed inset-0 z-50 bg-neutral-950 text-white flex flex-col justify-between p-6 md:p-12 animate-fade-in overflow-y-auto">
+          <div className="preview-container fixed inset-0 z-50 bg-neutral-950 text-white flex flex-col justify-between p-6 md:p-12 animate-fade-in overflow-y-auto">
             {/* Progress bar */}
             <div className="fixed top-0 left-0 right-0 h-0.5 bg-neutral-800 z-50">
               <div

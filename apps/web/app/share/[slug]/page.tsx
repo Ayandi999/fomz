@@ -65,7 +65,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
   const [passwordInput, setPasswordInput] = useState("");
   const [submittedPassword, setSubmittedPassword] = useState<string | undefined>(undefined);
 
-  const { formId, fields, isLoading, isError, error } = useGetPublicForm(slug, submittedPassword);
+  const { formId, fields, themeCode, isLoading, isError, error } = useGetPublicForm(slug, submittedPassword);
   
   useEffect(() => {
     if (isError && (error as any)?.message === "LOGIN_REQUIRED") {
@@ -516,10 +516,13 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
 
   return (
     <main 
-      className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-0 md:p-6" 
+      className="preview-container min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-0 md:p-6" 
       onClick={() => { setDropdownOpen(false); setPhoneDropdownOpen(false); }}
       onKeyDown={handleKeyDown}
     >
+      {themeCode?.css && (
+        <style dangerouslySetInnerHTML={{ __html: themeCode.css }} />
+      )}
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

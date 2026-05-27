@@ -876,12 +876,13 @@ export default function DashboardPage() {
                     <button
                       key={v}
                       type="button"
+                      disabled={modalIsPublished}
                       onClick={() => setModalVisibility(v)}
                       className={`border py-2 text-[10px] font-black uppercase tracking-widest transition-colors rounded ${
                         modalVisibility === v
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border hover:border-border-active bg-card text-foreground"
-                      }`}
+                      } ${modalIsPublished ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
                     >
                       {v}
                     </button>
@@ -895,10 +896,11 @@ export default function DashboardPage() {
                 </label>
                 <input
                   type="datetime-local"
+                  disabled={modalIsPublished}
                   value={modalValidTill}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  onClick={(e) => !modalIsPublished && e.currentTarget.showPicker?.()}
                   onChange={(e) => setModalValidTill(e.target.value)}
-                  className={`${inputClass} text-xs`}
+                  className={`${inputClass} text-xs ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
                 />
               </div>
 
@@ -916,19 +918,21 @@ export default function DashboardPage() {
                     </div>
                     <input
                       type="checkbox"
+                      disabled={modalIsPublished}
                       checked={modalIsPasswordProtected}
                       onChange={(e) => setModalIsPasswordProtected(e.target.checked)}
-                      className="w-4 h-4 accent-[#FF6B35] cursor-pointer"
+                      className={`w-4 h-4 accent-[#FF6B35] cursor-pointer ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
                     />
                   </div>
                   {modalIsPasswordProtected && (
                     <div className="flex flex-col gap-1.5">
                       <input
                         type="password"
+                        disabled={modalIsPublished}
                         placeholder="Enter access password"
                         value={modalPassword}
                         onChange={(e) => setModalPassword(e.target.value)}
-                        className={`${inputClass} text-xs`}
+                        className={`${inputClass} text-xs ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
                       />
                     </div>
                   )}
@@ -960,8 +964,9 @@ export default function DashboardPage() {
                           <span>{dom}</span>
                           <button
                             type="button"
+                            disabled={modalIsPublished}
                             onClick={() => setModalAllowedDomains(prev => prev.filter(d => d !== dom))}
-                            className="text-[#FF6B35] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer"
+                            className={`text-[#FF6B35] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer ${modalIsPublished ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
                           >
                             ✕
                           </button>
@@ -974,6 +979,7 @@ export default function DashboardPage() {
                   <div className="flex gap-2">
                     <input
                       type="text"
+                      disabled={modalIsPublished}
                       placeholder="e.g. company.com"
                       value={modalNewDomainInput}
                       onChange={(e) => setModalNewDomainInput(e.target.value)}
@@ -987,10 +993,11 @@ export default function DashboardPage() {
                           }
                         }
                       }}
-                      className={`${inputClass} text-xs flex-1`}
+                      className={`${inputClass} text-xs flex-1 ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
                     />
                     <button
                       type="button"
+                      disabled={modalIsPublished}
                       onClick={() => {
                         const val = modalNewDomainInput.trim().toLowerCase();
                         if (val && !modalAllowedDomains.includes(val)) {
@@ -998,7 +1005,7 @@ export default function DashboardPage() {
                           setModalNewDomainInput("");
                         }
                       }}
-                      className="px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded transition-all cursor-pointer"
+                      className={`px-3.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-white font-bold text-xs uppercase tracking-widest rounded transition-all cursor-pointer ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       Add
                     </button>
@@ -1009,10 +1016,10 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={handleModalSaveSettings}
-                disabled={isPublishing}
-                className={`${buttonSecondaryClass} bg-card border-border hover:bg-surface-hover text-foreground w-full h-10 text-xs`}
+                disabled={modalIsPublished || isPublishing}
+                className={`${buttonSecondaryClass} bg-card border-border hover:bg-surface-hover text-foreground w-full h-10 text-xs ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
               >
-                Save Publish Settings
+                {modalIsPublished ? "Form is Live (Unpublish to Edit Settings)" : "Save Publish Settings"}
               </button>
 
               {modalIsPublished && (

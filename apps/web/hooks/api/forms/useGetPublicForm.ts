@@ -15,6 +15,8 @@ export const useGetPublicForm = (slug: string, enteredPassword?: string) => {
   return {
     formId: data?.formId,
     fields: data?.fields,
+    themeId: data?.themeId,
+    themeCode: data?.themeCode,
     isLoading,
     isError,
     error,

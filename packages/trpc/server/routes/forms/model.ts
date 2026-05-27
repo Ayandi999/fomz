@@ -52,6 +52,8 @@ export const getUserFormsOutputModel = z.array(
     isPasswordProtected: z.boolean().nullable().optional().describe("Whether form is password protected"),
     password: z.string().nullable().optional().describe("Password for access protection"),
     responses: z.coerce.number().describe("Number of responses"),
+    themeId: z.string().uuid().nullable().optional().describe("Attached theme ID"),
+    themeCode: z.object({ css: z.string() }).nullable().optional().describe("Theme code CSS"),
   })
 );
 
@@ -190,6 +192,8 @@ export const getPublicFormBySlugInputModel = z.object({
 export const getPublicFormBySlugOutputModel = z.object({
   formId: z.string().uuid().describe("Id of the form"),
   fields: z.array(publicFieldModel),
+  themeId: z.string().uuid().nullable().optional(),
+  themeCode: z.object({ css: z.string() }).nullable().optional(),
 });
 
 export const submitFormResponseInputModel = z.object({
@@ -215,3 +219,30 @@ export const getRecentSubmissionsOutputModel = z.array(
     createdAt: z.coerce.date(),
   })
 );
+
+// Theme models
+export const getThemesInputModel = z.undefined();
+export const getThemesOutputModel = z.array(
+  z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+  })
+);
+
+export const getThemeInputModel = z.object({
+  themeId: z.string().uuid(),
+});
+export const getThemeOutputModel = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  code: z.object({ css: z.string() }),
+});
+
+export const updateFormThemeInputModel = z.object({
+  formId: z.string().uuid(),
+  themeId: z.string().uuid().nullable(),
+});
+export const updateFormThemeOutputModel = z.object({
+  success: z.boolean(),
+});
+

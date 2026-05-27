@@ -1,0 +1,229 @@
+/* === DYNAMIC SaaS DARK THEME === */
+:root {
+  --fz-bg-page: #0A0A0A;
+  --fz-bg-card: #111111;
+  --fz-bg-input: #161616;
+  --fz-bg-input-hover: #1C1C1C;
+  --fz-bg-button: #FFFFFF;
+  --fz-bg-button-hover: #E5E7EB;
+  --fz-bg-button-secondary: #111111;
+  --fz-bg-badge: #1C1C1C;
+  --fz-bg-upload-zone: #161616;
+  --fz-bg-upload-zone-hover: #1C1C1C;
+  --fz-bg-progress: #1F1F1F;
+  --fz-bg-tooltip: #FFFFFF;
+
+  --fz-text-primary: #FFFFFF;
+  --fz-text-secondary: #A1A1A1;
+  --fz-text-placeholder: #4A4A4A;
+  --fz-text-muted: #666666;
+  --fz-text-inverse: #000000;
+  --fz-text-link: #3B82F6;
+  --fz-text-error: #EF4444;
+  --fz-text-success: #10B981;
+
+  --fz-accent: #FF6B35;
+  --fz-accent-hover: #FF8555;
+  --fz-accent-light: #2A1710;
+  --fz-accent-glow: rgba(255, 107, 53, 0.15);
+
+  --fz-border: #1F1F1F;
+  --fz-border-hover: #2D2D2D;
+  --fz-border-focus: #FF6B35;
+  --fz-border-error: #EF4444;
+  --fz-border-success: #10B981;
+
+  --fz-radius-card: 16px;
+  --fz-radius-input: 10px;
+  --fz-radius-button: 10px;
+  --fz-radius-badge: 999px;
+  --fz-radius-upload: 12px;
+
+  --fz-shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --fz-shadow-card-hover: 0 10px 30px rgba(0, 0, 0, 0.7);
+  --fz-shadow-input-focus: 0 0 0 3px rgba(255, 107, 53, 0.25);
+  --fz-shadow-button: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --fz-shadow-button-hover: 0 4px 12px rgba(255, 107, 53, 0.2);
+
+  --fz-font-headline: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --fz-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --fz-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --fz-transition-fast: 150ms ease;
+  --fz-transition-base: 250ms ease;
+  --fz-transition-slow: 400ms ease;
+
+  /* === Core Token Mappings === */
+  --theme-bg: var(--fz-bg-page);
+  --theme-text: var(--fz-text-primary);
+  --theme-primary: var(--fz-accent);
+  --theme-secondary: var(--fz-bg-input-hover);
+  --theme-border: var(--fz-border);
+  --theme-card: var(--fz-bg-card);
+  --theme-card-text: var(--fz-text-primary);
+  --theme-accent: var(--fz-accent-hover);
+}
+
+/* === AUTOMATIC SELECTOR MAPPING TO LIVE DECK ELEMENTS === */
+
+/* Page & Container overrides */
+body, .preview-container {
+  background: var(--fz-bg-page) !important;
+  color: var(--fz-text-primary) !important;
+  font-family: var(--fz-font-body) !important;
+}
+
+/* Header slide titles */
+.preview-container h2, 
+.preview-container h1,
+.preview-container h3 {
+  font-family: var(--fz-font-headline) !important;
+  color: var(--fz-text-primary) !important;
+}
+
+.preview-container p {
+  color: var(--fz-text-secondary) !important;
+}
+
+/* Standard slide inputs */
+.preview-container input[type="text"],
+.preview-container input[type="number"],
+.preview-container input[type="email"],
+.preview-container input[type="tel"],
+.preview-container input[type="url"],
+.preview-container textarea {
+  background: var(--fz-bg-input) !important;
+  border: 1.5px solid var(--fz-border) !important;
+  border-radius: var(--fz-radius-input) !important;
+  color: var(--fz-text-primary) !important;
+  transition: all var(--fz-transition-base) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.preview-container input:hover,
+.preview-container textarea:hover {
+  border-color: var(--fz-border-hover) !important;
+  background: var(--fz-bg-input-hover) !important;
+}
+
+.preview-container input:focus,
+.preview-container textarea:focus {
+  border-color: var(--fz-border-focus) !important;
+  box-shadow: var(--fz-shadow-input-focus) !important;
+  background: var(--fz-bg-input) !important;
+}
+
+/* Navigation & Form Buttons */
+.preview-container button {
+  font-family: var(--fz-font-body) !important;
+  border-radius: var(--fz-radius-button) !important;
+  transition: all var(--fz-transition-base) !important;
+}
+
+/* Main primary buttons (Next / Submit / YES_NO selections / MCQ Options) */
+.preview-container button[class*="bg-primary"],
+.preview-container button[class*="theme-btn-primary"] {
+  background: var(--fz-bg-button) !important;
+  color: var(--fz-text-inverse) !important;
+  box-shadow: var(--fz-shadow-button) !important;
+}
+
+.preview-container button[class*="bg-primary"]:hover,
+.preview-container button[class*="theme-btn-primary"]:hover {
+  background: var(--fz-bg-button-hover) !important;
+  box-shadow: var(--fz-shadow-button-hover) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Secondary Buttons & Navigation elements */
+.preview-container button[class*="border-neutral"],
+.preview-container button[class*="theme-btn-secondary"],
+.preview-container button[class*="border-border"] {
+  background: var(--fz-bg-button-secondary) !important;
+  color: var(--fz-text-primary) !important;
+  border: 1.5px solid var(--fz-border) !important;
+}
+
+.preview-container button[class*="border-neutral"]:hover,
+.preview-container button[class*="theme-btn-secondary"]:hover {
+  border-color: var(--fz-border-hover) !important;
+  background: var(--fz-bg-input-hover) !important;
+}
+
+/* Custom Card Container (nested fields, MCQ choices, dropdown lists) */
+.preview-container div[class*="bg-card"],
+.preview-container .theme-card-el,
+.preview-container div[class*="bg-[#111111]"] {
+  background: var(--fz-bg-card) !important;
+  border-radius: var(--fz-radius-card) !important;
+  box-shadow: var(--fz-shadow-card) !important;
+  border: 1px solid var(--fz-border) !important;
+  color: var(--fz-text-primary) !important;
+}
+
+/* Choice Option items (selected state) */
+.preview-container button[class*="border-orange-400"],
+.preview-container div[class*="border-orange-400"],
+.preview-container button[class*="bg-primary/10"] {
+  border-color: var(--fz-border-focus) !important;
+  background: var(--fz-accent-light) !important;
+  color: var(--fz-accent) !important;
+  box-shadow: var(--fz-shadow-input-focus) !important;
+}
+
+/* Ratings */
+.preview-container svg[class*="text-orange-400"] {
+  color: #F59E0B !important;
+  fill: #F59E0B !important;
+}
+
+/* === Nested Sub-fields & Cards === */
+.preview-container div.flex-col > span.tracking-widest {
+  font-family: var(--fz-font-headline) !important;
+  color: var(--fz-text-secondary) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.preview-container div.flex-col > div.flex.items-center {
+  border-bottom: 1.5px solid var(--fz-border) !important;
+  transition: border-color var(--fz-transition-base) !important;
+}
+
+.preview-container div.flex-col > div.flex.items-center:focus-within {
+  border-color: var(--fz-border-focus) !important;
+}
+
+.preview-container div.flex-col > div.flex.items-center svg {
+  color: var(--fz-text-muted) !important;
+  transition: color var(--fz-transition-fast) !important;
+}
+
+.preview-container div.flex-col > div.flex.items-center:focus-within svg {
+  color: var(--fz-accent) !important;
+}
+
+.preview-container div.flex-col > div.flex.items-center input {
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 0 !important;
+  font-size: 15px !important;
+  color: var(--fz-text-primary) !important;
+}
+
+.preview-container div[class*="border-border"].p-5 {
+  background: var(--fz-bg-card) !important;
+  border: 1.5px solid var(--fz-border) !important;
+  border-radius: var(--fz-radius-card) !important;
+}
+
+.preview-container h4[class*="tracking-wider"] {
+  font-family: var(--fz-font-headline) !important;
+  color: var(--fz-accent) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
