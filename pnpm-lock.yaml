@@ -45,6 +45,9 @@ importers:
       '@types/multer':
         specifier: ^2.1.0
         version: 2.1.0
+      argon2:
+        specifier: ^0.44.0
+        version: 0.44.0
       cloudinary:
         specifier: ^2.10.0
         version: 2.10.0
