@@ -11,12 +11,7 @@ export const useSignup = () => {
         isIdle,
         isSuccess,
         status
-    } = trpc.auth.createUserWithEmailAndPassword.useMutation({
-        onSuccess:async()=>{
-            //Wherever useUser hook is used that component will refresh with new data/cookies
-            await utils.auth.getUserInfoFromToken.invalidate();
-        }
-    });
+    } = trpc.auth.createUserWithEmailAndPassword.useMutation();
     return {
         createUserWithEmailAndPassword,
         createUserWithEmailAndPasswordAsync,
