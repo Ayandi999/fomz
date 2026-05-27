@@ -1,135 +1,116 @@
-# Turborepo starter
+<div align="center">
+  <img src="./apps/web/public/som.svg" alt="Fomz Logo" width="200" />
+</div>
 
-This Turborepo starter is maintained by the Turborepo core team.
+<h1 align="center">Fomz</h1>
 
-## Using this example
+<div align="center">
+  <img src="https://img.shields.io/badge/Next-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/Express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB" alt="Express" />
+  <img src="https://img.shields.io/badge/tRPC-%232596BE.svg?style=for-the-badge&logo=tRPC&logoColor=white" alt="tRPC" />
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Drizzle-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black" alt="Drizzle ORM" />
+  <img src="https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/zod-%233068b7.svg?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" />
+  <img src="https://img.shields.io/badge/Framer_Motion-black?style=for-the-badge&logo=framer&logoColor=blue" alt="Framer Motion" />
+  <img src="https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=Cloudinary&logoColor=white" alt="Cloudinary" />
+  <img src="https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white" alt="Nginx" />
+  <img src="https://img.shields.io/badge/Turborepo-%23EF4444.svg?style=for-the-badge&logo=turborepo&logoColor=white" alt="Turborepo" />
+  <img src="https://img.shields.io/badge/AlmaLinux-%23005571.svg?style=for-the-badge&logo=almalinux&logoColor=white" alt="AlmaLinux" />
+</div>
 
-Run the following command:
+<br/>
 
-```sh
-npx create-turbo@latest
+## The Problem
+
+Let's face it: **traditional forms are incredibly lengthy, boring, and tedious.** Whether it's a survey, a feedback form, or an application, presenting a user with a massive wall of inputs inevitably leads to fatigue. Many people simply close the tab rather than fill them up, resulting in massive drop-off rates and lost data for creators.
+
+## The Solution: Fomz
+
+**Fomz** completely reimagines the data collection experience. Instead of an overwhelming wall of fields, Fomz uses an **interactive, beautiful, slide-by-slide format**. 
+
+By breaking down complex data entry into bite-sized, single-question interactions, we eliminate cognitive overload. The UI is heavily focused on sleek aesthetics, micro-animations (powered by Framer Motion), and keyboard-friendly navigation. This creates an experience that feels less like a chore and more like an engaging conversation. 
+
+Whether you are creating a quick feedback quiz or a comprehensive application, Fomz ensures your respondents stay engaged from the first question to the final submit button—drastically increasing your conversion and completion rates.
+
+---
+
+## Gallery
+
+*(Note: Replace these image placeholders with your actual screenshot URLs)*
+
+<div align="center">
+  <!-- Big Landing Screenshot -->
+  <img src="./public/placeholder_landing_large.png" alt="Fomz Landing Page" width="100%" />
+</div>
+<br/>
+<div align="center">
+  <!-- Side-by-Side Screenshots -->
+  <img src="./public/placeholder_dash.png" alt="Dashboard" width="49%" />
+  <img src="./public/placeholder_quiz.png" alt="Quiz Format" width="49%" />
+</div>
+
+---
+
+## Quick Start Guide
+
+Follow these simple instructions to get the Fomz monorepo running on your local machine.
+
+### System Prerequisites
+To successfully run this project locally, your system **must have** the following installed:
+- **Node.js** (v18 or higher)
+- **pnpm** (Package manager used for this monorepo)
+- **Docker & Docker Compose** (Required for the database and Redis instances)
+
+### Step 1: Clone and Install
+First, clone the repository and install all dependencies via `pnpm`:
+
+```bash
+git clone https://github.com/your-username/fomz.git
+cd fomz
+pnpm install
 ```
 
-## What's inside?
+### Step 2: Environment Setup
+The project uses a `.env` file at the root level for configuration. You can use the provided template to get started. Make sure your `.env` file is populated with your required secrets (OAuth, SMTP, Cloudinary, Database connection, etc.).
 
-This Turborepo includes the following packages/apps:
+### Step 3: Start Infrastructure (Docker)
+We use Docker to easily spin up our PostgreSQL database and Redis (Valkey) instance. Run the following command at the root of the project:
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
+```bash
+docker-compose up -d
 ```
-cd my-turborepo
+*This starts the containers in detached mode.*
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
+### Step 4: Database Initialization
+With the database running, you need to generate the Prisma client and run the migrations to set up the tables:
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+pnpm run db:generate
+pnpm run db:migrate
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### Step 5: Start the Development Server
+Everything is ready! Start the Turborepo development server to run both the frontend web app and backend API concurrently:
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+pnpm run dev
 ```
 
-### Develop
+---
 
-To develop all apps and packages, run the following command:
+## Local Navigation
 
-```
-cd my-turborepo
+Once the development server is up and running, you can access the different parts of the application here:
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+- 🌐 **Web Frontend (Next.js):** [http://localhost:3000](http://localhost:3000)
+- ⚙️ **API Backend (Express):** [http://localhost:8000/api](http://localhost:8000/api)
+- 📚 **Scalar API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+<div align="center">
+  <br/>
+  <p>\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/</p>
+</div>
