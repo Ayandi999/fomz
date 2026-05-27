@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 import Link from "next/link";
 import { ArrowRight, AlertCircle } from "lucide-react";
 
-function ResetPasswordPage() {
+function ResetPasswordForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -72,7 +72,7 @@ function ResetPasswordPage() {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center gap-2 border-b border-white/5 pb-5">
-          <img src="/som.svg" alt="Formz App Logo" className="h-9 w-auto" />
+          <img src="/som.svg" alt="Fomz App Logo" className="h-9 w-auto" />
           <h1 className="text-2xl font-black text-white tracking-tight mt-2">
             Reset Password
           </h1>
@@ -145,6 +145,18 @@ function ResetPasswordPage() {
         </p>
       </form>
     </div>
+  );
+}
+
+function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full bg-[#050505] flex justify-center items-center">
+        <div className="text-[#FF6B35] animate-pulse uppercase tracking-widest text-xs font-black">Loading...</div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
 
