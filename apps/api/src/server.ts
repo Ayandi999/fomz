@@ -14,6 +14,11 @@ import redis from "@repo/services/redis";
 import { env } from "./env";
 
 export const app = express();
+app.use(cors({
+  origin: [env.FRONTEND_URL, "http://localhost:3000", "https://fomz.site"],
+  credentials: true,
+}));
+
 const openApiDocument = generateOpenApiDocument(serverRouter, {
   title: "Streamyst OpenAPI",
   version: "1.0.0",
@@ -75,7 +80,7 @@ app.get("/api/verify-email", async (req, res) => {
       <div style="font-family: sans-serif; padding: 40px; text-align: center;">
         <h1 style="color: #ef4444;">Verification Failed</h1>
         <p>Missing email or verification code in link.</p>
-        <a href="http://localhost:3000/sign-up" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signup</a>
+        <a href="${env.FRONTEND_URL}/sign-up" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signup</a>
       </div>
     `);
   }
@@ -107,13 +112,13 @@ app.get("/api/verify-email", async (req, res) => {
     });
 
     // Redirect user directly to the makeshift dashboard page
-    return res.redirect("http://localhost:3000/dashboard");
+    return res.redirect(`${env.FRONTEND_URL}/dashboard`);
   } catch (error: any) {
     return res.status(400).send(`
       <div style="font-family: sans-serif; padding: 40px; text-align: center;">
         <h1 style="color: #ef4444;">Verification Failed</h1>
         <p>${error.message || "Invalid or expired link."}</p>
-        <a href="http://localhost:3000/sign-up" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signup</a>
+        <a href="${env.FRONTEND_URL}/sign-up" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signup</a>
       </div>
     `);
   }
@@ -127,7 +132,7 @@ app.get("/api/reset-password-verify", async (req, res) => {
       <div style="font-family: sans-serif; padding: 40px; text-align: center;">
         <h1 style="color: #ef4444;">Verification Failed</h1>
         <p>Missing email or verification code in link.</p>
-        <a href="http://localhost:3000/sign-in" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signin</a>
+        <a href="${env.FRONTEND_URL}/sign-in" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signin</a>
       </div>
     `);
   }
@@ -141,13 +146,13 @@ app.get("/api/reset-password-verify", async (req, res) => {
     if (storedCode !== code) throw new Error("Invalid verification code");
 
     // 3. Redirect user directly to the reset password page on web
-    return res.redirect(`http://localhost:3000/reset-password?email=${encodeURIComponent(String(email))}&code=${String(code)}`);
+    return res.redirect(`${env.FRONTEND_URL}/reset-password?email=${encodeURIComponent(String(email))}&code=${String(code)}`);
   } catch (error: any) {
     return res.status(400).send(`
       <div style="font-family: sans-serif; padding: 40px; text-align: center;">
         <h1 style="color: #ef4444;">Verification Failed</h1>
         <p>${error.message || "Invalid or expired link."}</p>
-        <a href="http://localhost:3000/sign-in" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signin</a>
+        <a href="${env.FRONTEND_URL}/sign-in" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #171717; color: white; text-decoration: none; font-weight: bold; text-transform: uppercase;">Back to Signin</a>
       </div>
     `);
   }
