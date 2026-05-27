@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSignin } from "~/hooks/api/auth/useSignin";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 import { Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
 
-function SigninPage() {
+function SigninForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { siginInUserWithEmailAndPasswordAsync } = useSignin();
@@ -137,6 +137,18 @@ function SigninPage() {
         </p>
       </form>
     </div>
+  );
+}
+
+function SigninPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full bg-[#050505] flex justify-center items-center">
+        <div className="text-[#FF6B35] animate-pulse uppercase tracking-widest text-xs font-black">Loading...</div>
+      </div>
+    }>
+      <SigninForm />
+    </Suspense>
   );
 }
 

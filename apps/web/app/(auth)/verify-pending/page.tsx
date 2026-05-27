@@ -2,8 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { MailCheck } from "lucide-react";
+import { Suspense } from "react";
 
-function VerifyPendingPage() {
+function VerifyPendingContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const type = searchParams.get("type") || "signup";
@@ -21,7 +22,7 @@ function VerifyPendingPage() {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center gap-2 border-b border-white/5 pb-5">
-          <img src="/som.svg" alt="Formz App Logo" className="h-9 w-auto" />
+          <img src="/som.svg" alt="Fomz App Logo" className="h-9 w-auto" />
           <h1 className="text-2xl font-black text-white tracking-tight mt-2">
             {type === "reset" ? "Reset Password" : "Verify Email"}
           </h1>
@@ -54,6 +55,18 @@ function VerifyPendingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function VerifyPendingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full bg-[#050505] flex justify-center items-center">
+        <div className="text-[#FF6B35] animate-pulse uppercase tracking-widest text-xs font-black">Loading...</div>
+      </div>
+    }>
+      <VerifyPendingContent />
+    </Suspense>
   );
 }
 

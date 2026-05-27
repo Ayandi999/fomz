@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 
-function GoogleCallbackPage() {
+function GoogleCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const code = searchParams.get("code");
@@ -58,6 +58,23 @@ function GoogleCallbackPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+function GoogleCallbackPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen w-full flex flex-col justify-center items-center p-4">
+                <div className="w-full max-w-md border-2 border-neutral-900 dark:border-neutral-100 bg-background p-8 flex flex-col gap-6 text-center">
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-2xl font-extrabold uppercase tracking-tight animate-pulse">Loading</h1>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Please wait...</p>
+                    </div>
+                </div>
+            </div>
+        }>
+            <GoogleCallbackContent />
+        </Suspense>
     );
 }
 
