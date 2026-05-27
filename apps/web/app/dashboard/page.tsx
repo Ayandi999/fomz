@@ -845,7 +845,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="flex flex-col gap-6 px-6 py-6">
+            <div className="flex flex-col gap-6 px-6 py-6 overflow-y-auto max-h-[75vh]">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-black uppercase tracking-widest text-foreground">
@@ -871,23 +871,21 @@ export default function DashboardPage() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
                   Visibility
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["PUBLIC", "UNLISTED", "PRIVATE"] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      disabled={modalIsPublished}
-                      onClick={() => setModalVisibility(v)}
-                      className={`border py-2 text-[10px] font-black uppercase tracking-widest transition-colors rounded ${
-                        modalVisibility === v
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-border-active bg-card text-foreground"
-                      } ${modalIsPublished ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
+                <select
+                  disabled={modalIsPublished}
+                  value={modalVisibility}
+                  onChange={(e) => setModalVisibility(e.target.value as any)}
+                  className={`${inputClass} text-xs ${modalIsPublished ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <option value="PUBLIC">PUBLIC</option>
+                  <option value="UNLISTED">UNLISTED</option>
+                  <option value="PRIVATE">PRIVATE</option>
+                </select>
+                <p className="text-[9px] text-text-secondary uppercase tracking-wider mt-1">
+                  {modalVisibility === "PUBLIC" && "Anyone can find and fill this form."}
+                  {modalVisibility === "UNLISTED" && "Only people with the link can access."}
+                  {modalVisibility === "PRIVATE" && "Form is hidden from all respondents."}
+                </p>
               </div>
 
               <div className="flex flex-col gap-2">

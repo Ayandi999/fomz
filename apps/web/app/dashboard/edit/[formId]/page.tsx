@@ -1373,7 +1373,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                 </button>
               </div>
 
-              <div className="flex flex-col gap-6 px-6 py-6">
+              <div className="flex flex-col gap-6 px-6 py-6 overflow-y-auto max-h-[75vh]">
                 {/* Publish toggle */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -1395,23 +1395,16 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
                 {/* Visibility */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Visibility</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["PUBLIC", "UNLISTED", "PRIVATE"] as const).map(v => (
-                      <button
-                        key={v}
-                        type="button"
-                        disabled={publishStatus}
-                        onClick={() => setPublishVisibility(v)}
-                        className={`border py-2 text-[10px] font-black uppercase tracking-widest transition-colors rounded ${
-                          publishVisibility === v
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border hover:border-border-active bg-card text-foreground"
-                        } ${publishStatus ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
+                  <select
+                    disabled={publishStatus}
+                    value={publishVisibility}
+                    onChange={(e) => setPublishVisibility(e.target.value as any)}
+                    className={`${inputClass} text-xs ${publishStatus ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+                  >
+                    <option value="PUBLIC">PUBLIC</option>
+                    <option value="UNLISTED">UNLISTED</option>
+                    <option value="PRIVATE">PRIVATE</option>
+                  </select>
                   <p className="text-[9px] text-text-secondary uppercase tracking-wider">
                     {publishVisibility === "PUBLIC" && "Anyone can find and fill this form."}
                     {publishVisibility === "UNLISTED" && "Only people with the link can access."}
