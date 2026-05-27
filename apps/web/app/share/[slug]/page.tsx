@@ -976,7 +976,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                       formData.append("file", selectedFile);
                       formData.append("type", FOLDERS[currentField.fieldType as keyof typeof FOLDERS]);
 
-                      const response = await fetch("http://localhost:8000/api/upload", {
+                      const apiBase = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/trpc', '') : 'http://localhost:8000';
+                      const response = await fetch(`${apiBase}/api/upload`, {
                         method: "POST",
                         body: formData,
                       });
