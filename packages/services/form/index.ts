@@ -22,6 +22,7 @@ import { usersTable } from "@repo/database/models/user";
 import { themesTable } from "@repo/database/models/theme";
 import { sendEmail } from "../clients/mail";
 import { cloudinary } from "../clients/cloudinary";
+import { env } from "../env";
 
 class formService {
   public async createForm(payload: CreateFormInput) {
@@ -814,7 +815,7 @@ class formService {
         });
 
         // Unique dynamic link to analysis dashboard tab
-        const analysisUrl = `http://localhost:3000/dashboard/edit/${form.formId}?tab=analytics`;
+        const analysisUrl = `${env.FRONTEND_URL}/dashboard/edit/${form.formId}?tab=analytics`;
 
         // Format HTML Email Digest with standard inline retro-aesthetic layout
         const extraRecipients = form.notificationEmails || [];

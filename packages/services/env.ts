@@ -10,7 +10,8 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional().describe("Ethereal SMTP password"),
   RESEND_API_KEY: z.string().optional().describe("Resend email delivery API key"),
   CLOUDINARY_URL: z.string().describe("Cloudinary connection URL"),
-  BACKEND_URL: z.string().optional().default("http://localhost:8000").describe("Backend URL for mail links"),
+  BACKEND_URL: z.string().optional().default("https://api.fomz.site").describe("Backend URL for mail links"),
+  FRONTEND_URL: z.string().optional().default("https://www.fomz.site").describe("Frontend URL for mail links"),
   RESEND_FROM_EMAIL: z.string().optional().default("Fomz <onboarding@resend.dev>").describe("From email address for Resend"),
 });
 
