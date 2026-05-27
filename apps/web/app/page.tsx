@@ -507,14 +507,16 @@ export default function Home() {
             >
               <Sparkles className="w-3.5 h-3.5 text-[#FF6B35]" /> Explore Public Forms
             </Link>
-            <button 
-              onClick={() => setVideoOpen(true)}
+            <a 
+              href="https://www.youtube.com/watch?v=tIEnePoe-ns"
+              target="_blank"
+              rel="noopener noreferrer"
               onMouseEnter={() => setCursorHovered(true)}
               onMouseLeave={() => setCursorHovered(false)}
               className="inline-flex items-center justify-center font-bold px-8 py-4 rounded-full border border-[#222222] bg-[#111] hover:bg-[#161616] text-[#A1A1A1] hover:text-white transition-all duration-300 text-xs uppercase tracking-widest gap-2 hover:scale-105"
             >
               <Play className="w-3.5 h-3.5 text-[#FF6B35]" /> See How It Works
-            </button>
+            </a>
           </div>
 
           {/* 3D-Tilted Interactive Glassmorphism Form Card */}

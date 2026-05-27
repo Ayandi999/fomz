@@ -31,17 +31,31 @@ Let's face it: **traditional forms are incredibly lengthy, boring, and tedious.*
 
 ## The Solution: Fomz
 
-**Fomz** completely reimagines the data collection experience. Instead of an overwhelming wall of fields, Fomz uses an **interactive, beautiful, slide-by-slide format**. 
+<div align="center">
+  <h3>🎥 Live Demo</h3>
+  <a href="https://www.youtube.com/watch?v=tIEnePoe-ns">
+    <img src="./public/thumb.png" alt="Fomz Video Demo" width="100%" />
+  </a>
+</div>
+<br/>
 
-By breaking down complex data entry into bite-sized, single-question interactions, we eliminate cognitive overload. The UI is heavily focused on sleek aesthetics, micro-animations (powered by Framer Motion), and keyboard-friendly navigation. This creates an experience that feels less like a chore and more like an engaging conversation. 
+**Fomz** completely reimagines the data collection experience. Instead of an overwhelming wall of fields, Fomz uses an **interactive, beautiful, slide-by-slide format**.
+
+By breaking down complex data entry into bite-sized, single-question interactions, we eliminate cognitive overload. The UI is heavily focused on sleek aesthetics, micro-animations (powered by Framer Motion), and keyboard-friendly navigation. This creates an experience that feels less like a chore and more like an engaging conversation.
 
 Whether you are creating a quick feedback quiz or a comprehensive application, Fomz ensures your respondents stay engaged from the first question to the final submit button—drastically increasing your conversion and completion rates.
+---
+<br/>
+<div align="center">
+  <h3>🚀 Experience it live at:</h3>
+  <a href="https://www.fomz.site/" style="font-size: 1.2em;"><strong>https://www.fomz.site/</strong></a>
+</div>
 
 ---
 
 ## Gallery
 
-*(Note: Replace these image placeholders with your actual screenshot URLs)*
+_(Note: Replace these image placeholders with your actual screenshot URLs)_
 
 <div align="center">
   <!-- Big Landing Screenshot -->
@@ -61,12 +75,15 @@ Whether you are creating a quick feedback quiz or a comprehensive application, F
 Follow these simple instructions to get the Fomz monorepo running on your local machine.
 
 ### System Prerequisites
+
 To successfully run this project locally, your system **must have** the following installed:
+
 - **Node.js** (v18 or higher)
 - **pnpm** (Package manager used for this monorepo)
 - **Docker & Docker Compose** (Required for the database and Redis instances)
 
 ### Step 1: Clone and Install
+
 First, clone the repository and install all dependencies via `pnpm`:
 
 ```bash
@@ -76,17 +93,21 @@ pnpm install
 ```
 
 ### Step 2: Environment Setup
+
 The project uses a `.env` file at the root level for configuration. You can use the provided template to get started. Make sure your `.env` file is populated with your required secrets (OAuth, SMTP, Cloudinary, Database connection, etc.).
 
 ### Step 3: Start Infrastructure (Docker)
+
 We use Docker to easily spin up our PostgreSQL database and Redis (Valkey) instance. Run the following command at the root of the project:
 
 ```bash
 docker-compose up -d
 ```
-*This starts the containers in detached mode.*
+
+_This starts the containers in detached mode._
 
 ### Step 4: Database Initialization
+
 With the database running, you need to generate the Prisma client and run the migrations to set up the tables:
 
 ```bash
@@ -95,6 +116,7 @@ pnpm run db:migrate
 ```
 
 ### Step 5: Start the Development Server
+
 Everything is ready! Start the Turborepo development server to run both the frontend web app and backend API concurrently:
 
 ```bash
@@ -115,5 +137,6 @@ Once the development server is up and running, you can access the different part
   <p>\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/</p>
   <p>Made with a lot of coffee and love ❤️</p>
   <p>Praise the Sun! ☀️</p>
-  
+
+
 </div>
