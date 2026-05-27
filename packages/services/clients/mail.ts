@@ -51,7 +51,7 @@ export async function sendEmail({ to, subject, html }: SendEmailPayload) {
           "Authorization": `Bearer ${resendKey}`,
         },
         body: JSON.stringify({
-          from: "Form Builder <onboarding@resend.dev>",
+          from: env.RESEND_FROM_EMAIL,
           to: Array.isArray(to) ? to : [to],
           subject,
           html,
@@ -74,7 +74,7 @@ export async function sendEmail({ to, subject, html }: SendEmailPayload) {
   const mailTransporter = await getMailTransporter();
 
   const info = await mailTransporter.sendMail({
-    from: '"Form Builder Team" <no-reply@formbuilder.com>',
+    from: '"Fomz Team" <no-reply@fomz.site>',
     to: Array.isArray(to) ? to.join(", ") : to,
     subject,
     html,
@@ -89,11 +89,11 @@ export async function sendEmail({ to, subject, html }: SendEmailPayload) {
 }
 
 export async function sendVerificationCodeEmail(to: string, code: string) {
-  const verifyUrl = `http://localhost:8000/api/verify-email?email=${encodeURIComponent(to)}&code=${code}`;
+  const verifyUrl = `${env.BACKEND_URL}/api/verify-email?email=${encodeURIComponent(to)}&code=${code}`;
 
   return sendEmail({
     to,
-    subject: "Verify Your Email - Form Builder",
+    subject: "Verify Your Email - Fomz",
     html: `
       <div style="font-family: sans-serif; padding: 25px; max-width: 550px; margin: auto; border: 2px solid #171717; background-color: #ffffff;">
         <h2 style="text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #171717; padding-bottom: 12px; color: #171717; font-size: 20px; font-weight: 800;">Verify Your Email</h2>
@@ -113,11 +113,11 @@ export async function sendVerificationCodeEmail(to: string, code: string) {
 }
 
 export async function sendForgotPasswordEmail(to: string, code: string) {
-  const resetUrl = `http://localhost:8000/api/reset-password-verify?email=${encodeURIComponent(to)}&code=${code}`;
+  const resetUrl = `${env.BACKEND_URL}/api/reset-password-verify?email=${encodeURIComponent(to)}&code=${code}`;
 
   return sendEmail({
     to,
-    subject: "Reset Your Password - Form Builder",
+    subject: "Reset Your Password - Fomz",
     html: `
       <div style="font-family: sans-serif; padding: 25px; max-width: 550px; margin: auto; border: 2px solid #171717; background-color: #ffffff;">
         <h2 style="text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #171717; padding-bottom: 12px; color: #171717; font-size: 20px; font-weight: 800;">Reset Your Password</h2>
