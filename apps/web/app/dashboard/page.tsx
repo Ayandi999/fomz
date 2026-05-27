@@ -333,7 +333,7 @@ export default function DashboardPage() {
       <header className="w-full border-b border-border bg-[#0F0F0F]">
         <div className="w-full max-w-none px-4 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src="/som.svg" alt="Formz! App Logo" className="h-10 w-auto" />
+            <img src="/som.svg" alt="Fomz! App Logo" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-4 relative z-50">
 

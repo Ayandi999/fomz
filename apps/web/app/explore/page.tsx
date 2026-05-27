@@ -65,7 +65,7 @@ export default function ExplorePage() {
       <header className="w-full border-b border-border bg-[#0F0F0F] sticky top-0 z-50">
         <div className="w-full max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/som.svg" alt="Formz App Logo" className="h-9 w-auto" />
+            <img src="/som.svg" alt="Fomz App Logo" className="h-9 w-auto" />
           </Link>
           <div className="flex items-center gap-4">
             <Link 
@@ -103,10 +103,10 @@ export default function ExplorePage() {
             <Sparkles className="w-3.5 h-3.5 text-[#FF6B35] animate-pulse" /> Community Flows
           </span>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-none">
-            Explore Formz Creations.
+            Explore Fomz Creations.
           </h1>
           <p className="text-sm text-[#A1A1A1] mt-1 leading-relaxed">
-            Browse and fill out published conversational layouts created by the Formz community. Test features, leave feedback, and find inspiration.
+            Browse and fill out published conversational layouts created by the Fomz community. Test features, leave feedback, and find inspiration.
           </p>
         </div>
 
@@ -198,7 +198,7 @@ export default function ExplorePage() {
                             {form.title}
                           </h3>
                           <p className="text-[13px] text-[#A1A1A1] leading-relaxed line-clamp-3">
-                            {form.description || "A dynamic conversational form flow created on Formz."}
+                            {form.description || "A dynamic conversational form flow created on Fomz."}
                           </p>
                         </div>
                       </div>

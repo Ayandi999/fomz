@@ -395,12 +395,16 @@ export default function Home() {
         )}
 
         {/* Global Navigation Header */}
-        <header className="relative max-w-7xl mx-auto px-6 h-24 flex items-center justify-between z-40">
-          <div className="flex items-center">
-            <img src="/som.svg" alt="Formz App Logo" className="h-9 w-auto" />
+        <header className="relative max-w-7xl mx-auto px-6 h-24 grid grid-cols-3 items-center z-40">
+          {/* Column 1: Logo */}
+          <div className="flex justify-start">
+            <Link href="/" className="flex items-center shrink-0">
+              <img src="/som.svg" alt="Fomz App Logo" className="h-14 w-14 object-contain" />
+            </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-10">
+          {/* Column 2: Navigation Links (Centered) */}
+          <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-10">
             <a 
               href="#problem" 
               onMouseEnter={() => setCursorHovered(true)}
@@ -448,7 +452,8 @@ export default function Home() {
             </Link>
           </nav>
           
-          <div className="flex items-center gap-6">
+          {/* Column 3: Action Buttons */}
+          <div className="flex items-center justify-end gap-4 lg:gap-6">
             <Link 
               href="/sign-in" 
               onMouseEnter={() => setCursorHovered(true)}

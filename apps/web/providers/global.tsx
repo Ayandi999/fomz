@@ -30,7 +30,7 @@ export const GlobalProviders: React.FC<{ children: React.ReactNode }> = ({ child
         defaultTheme="dark"
         forcedTheme="dark"
         enableSystem={false}
-        storageKey="formz-theme"
+        storageKey="fomz-theme"
       >
         <trpc.Provider queryClient={queryClient} client={trpcClient}>
           {children}

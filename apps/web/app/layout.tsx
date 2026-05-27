@@ -13,7 +13,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Formz",
+  title: "Fomz",
   description: "Dynamic Conversational Form Builder SaaS",
 };
 

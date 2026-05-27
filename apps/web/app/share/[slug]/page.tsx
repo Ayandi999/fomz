@@ -1274,10 +1274,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
         </div>
       </motion.div>
 
-      {/* Powered by Formz */}
+      {/* Powered by Fomz */}
       <div className="mt-8 text-center select-none pb-4">
         <span className="text-[10px] text-neutral-700 font-bold uppercase tracking-widest">
-          Powered by Formz
+          Powered by Fomz
         </span>
       </div>
     </main>

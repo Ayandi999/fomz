@@ -48,7 +48,7 @@ function SigninPage() {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center gap-2 border-b border-white/5 pb-5">
-          <img src="/som.svg" alt="Formz App Logo" className="h-9 w-auto" />
+          <img src="/som.svg" alt="Fomz App Logo" className="h-9 w-auto" />
           <h1 className="text-2xl font-black text-white tracking-tight mt-2 flex items-center gap-1.5 justify-center">
             Sign In
           </h1>
