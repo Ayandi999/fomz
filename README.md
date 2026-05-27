@@ -112,5 +112,8 @@ Once the development server is up and running, you can access the different part
 - 📚 **Scalar API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
 <div align="center">
   <br/>
-  <p>\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/\[T]/</p>
+  <p>\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/\\[T]/</p>
+  <p>Made with a lot of coffee and love ❤️</p>
+  <p>Praise the Sun! ☀️</p>
+  
 </div>
