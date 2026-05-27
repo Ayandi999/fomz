@@ -24,6 +24,7 @@
     "@repo/logger": "workspace:*",
     "@repo/services": "workspace:*",
     "@repo/trpc": "workspace:*",
+    "argon2": "^0.44.0",
     "@scalar/express-api-reference": "^0.8.30",
     "@trpc/server": "^11.8.1",
     "@types/cookie-parser": "^1.4.10",
