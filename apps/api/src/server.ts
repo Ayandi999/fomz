@@ -25,9 +25,14 @@ app.use(cookieParser());
 
 app.use(express.json());
 
+app.use(cors({
+  origin: true,
+  credentials: true,
+}))
+
 const lenientLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 100000, // Increased to insane amounts for local dev
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many requests, please try again later." }
@@ -35,7 +40,7 @@ const lenientLimiter = rateLimit({
 
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 100000, // Increased to insane amounts for local dev
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many authentication attempts, please try again later." }

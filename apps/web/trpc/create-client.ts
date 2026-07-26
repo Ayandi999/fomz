@@ -28,7 +28,7 @@ const processQueue = (error: Error | null) => {
 
 export const createTRPCHttpBatchClientClient = (opts?: CreateTRPCHttpBatchClientClientOpts) => {
   const c = opts?.enableStreaming ? httpBatchStreamLink : httpLink;
-  const baseUrl = env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/trpc";
+  const baseUrl = "http://localhost:8000/trpc"; // env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/trpc";
 
   return c({
     url: baseUrl,
