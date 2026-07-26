@@ -3,14 +3,10 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { GlobalProviders } from "~/providers/global";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-});
+const fredrikaTheGreat = localFont({
+  src:'./fonts/fredericka-the-great/FrederickatheGreat-Regular.ttf',
+  variable:"--fredrika-font"
+})
 
 export const metadata: Metadata = {
   title: "Fomz",
@@ -24,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${fredrikaTheGreat.variable}`}>
         <GlobalProviders>{children}</GlobalProviders>
       </body>
     </html>

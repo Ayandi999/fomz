@@ -45,10 +45,21 @@
    DARK MODE — default theme, applied via [data-theme="dark"]
    on <html> by next-themes
    ============================================================ */
-:root,
-[data-theme="dark"] {
+:root {
   --radius: 0.5rem;
 
+  --background: #fdfbf7;
+  --foreground: #111111;
+  --card: #FFFFFF;
+  --card-foreground: #111111;
+  --popover: #FFFFFF;
+  --popover-foreground: #111111;
+
+  --primary: #FF6B35;
+  --primary-foreground: #FFFFFF;
+}
+
+[data-theme="dark"] {
   --background: #0F0F0F;
   --foreground: #FFFFFF;
   --card: #1A1A1A;
@@ -93,3 +104,35 @@
     cursor: pointer;
   }
 }
+
+@layer utilities {
+  .paper-texture {
+    background-color: #fdfbf7;
+    background-image: url('/back-image.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .pencil-circle path {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  }
+  .group:hover .pencil-circle path {
+    stroke-dashoffset: 0;
+  }
+  
+  .sketchy-border {
+    border: 2px solid #111;
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    background: transparent;
+  }
+  .sketchy-border:hover {
+    border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  }
+}
+
+
