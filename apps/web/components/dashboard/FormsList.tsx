@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, ArrowRight, Trash2, Plus } from "lucide-react";
+import { FileText, ArrowRight, Trash2, Plus, MoreVertical, Archive as ArchiveIcon } from "lucide-react";
 import { isPlaceholderName, mockViews, buttonSecondaryClass, cardClass } from "./utils";
 
 interface FormsListProps {
@@ -17,6 +17,7 @@ interface FormsListProps {
 export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishClick, onDeleteForm }: FormsListProps) {
   const router = useRouter();
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     await onDeleteForm(id);
@@ -26,7 +27,7 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
   return (
     <section className="flex-1 flex flex-col gap-6 w-full">
       <div className="w-full flex items-center justify-between border-b border-border/30 pb-4">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-white">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-[#111]">
           YOUR FORMS
         </h2>
         
@@ -35,35 +36,35 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-transparent border-none text-xs font-semibold text-[#666] hover:text-white transition-colors focus:outline-none cursor-pointer"
+            className="bg-transparent border-none text-xs font-semibold text-[#666] hover:text-[#111] transition-colors focus:outline-none cursor-pointer"
           >
-            <option value="recent" className="bg-[#161616]">Recent</option>
-            <option value="name" className="bg-[#161616]">Name</option>
-            <option value="responses" className="bg-[#161616]">Responses</option>
+            <option value="recent" className="bg-white text-[#111]">Recent</option>
+            <option value="name" className="bg-white text-[#111]">Name</option>
+            <option value="responses" className="bg-white text-[#111]">Responses</option>
           </select>
         </div>
       </div>
 
       {forms.length === 0 ? (
-        <div className="bg-[#161616] p-12 rounded-xl flex flex-col items-center justify-center gap-4 text-center shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
-          <div className="w-16 h-16 rounded-full bg-[#FF6B35]/10 flex items-center justify-center text-[#FF6B35]">
+        <div className="bg-white/60 p-12 rounded-none flex flex-col items-center justify-center gap-4 text-center shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-[#2563EB]/10 flex items-center justify-center text-[#2563EB]">
             <FileText className="w-8 h-8" />
           </div>
           <div className="flex flex-col gap-1">
-            <h3 className="text-xl font-bold text-white">No forms yet</h3>
+            <h3 className="text-xl font-bold text-[#111]">No forms yet</h3>
             <p className="text-sm text-[#666] leading-snug">
               Create your first form to get started
             </p>
           </div>
           <button
             onClick={onCreateClick}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-semibold bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90 h-9 px-4 transition-all duration-200 cursor-pointer shadow-sm border-none mt-2"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#2563EB]/90 h-9 px-4 transition-all duration-200 cursor-pointer shadow-sm border-none mt-2"
           >
             + Create Form →
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
           {forms.map((form) => {
             const isTemp = isPlaceholderName(form.title);
             const viewsCount = mockViews(form.id, form.responses);
@@ -71,12 +72,12 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
               <div
                 key={form.id}
                 onClick={() => router.push(`/dashboard/edit/${form.id}`)}
-                className="group bg-[#161616] hover:bg-[#1A1A1A] p-6 rounded-2xl flex flex-col gap-5 transition-all duration-200 cursor-pointer shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative border border-transparent hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+                className="group bg-white/60 hover:bg-white p-6 rounded-none flex flex-col gap-5 transition-all duration-200 cursor-pointer shadow-sm relative border border-transparent hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-[#0F0F0F] flex items-center justify-center shrink-0 border border-border/10">
-                      <FileText className="w-5 h-5 text-[#FF6B35]" />
+                    <div className="w-10 h-10 rounded-none bg-black/5 flex items-center justify-center shrink-0 border border-black/10">
+                      <FileText className="w-5 h-5 text-[#2563EB]" />
                     </div>
                     <div className="min-w-0 flex flex-col gap-0.5">
                       {isTemp ? (
@@ -84,7 +85,7 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
                           Untitled Form
                         </span>
                       ) : (
-                        <span className="text-[18px] font-bold text-white truncate">
+                        <span className="text-[18px] font-bold text-[#111] truncate">
                           {form.title}
                         </span>
                       )}
@@ -94,23 +95,37 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
                     </div>
                   </div>
 
-                  {/* Status Badge */}
-                  {form.isPublished ? (
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 rounded-full">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                      </span>
-                      Published
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800/40 border border-zinc-800/60 rounded-full">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-zinc-500"></span>
-                      </span>
-                      Unpublished
-                    </span>
-                  )}
+                  {/* 3 dots menu */}
+                  <div className="relative" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setOpenDropdownId(openDropdownId === form.id ? null : form.id)}
+                      className="p-1.5 text-zinc-500 hover:bg-black/5 hover:text-[#111] rounded-none transition-colors border-none bg-transparent cursor-pointer"
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                    {openDropdownId === form.id && (
+                      <div className="absolute right-0 mt-1 w-36 bg-white border border-black/10 rounded-none shadow-lg z-10 flex flex-col p-1 animate-fade-in">
+                        <button
+                          onClick={() => {
+                            setOpenDropdownId(null);
+                            // Archive action placeholder
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs font-semibold text-[#444] hover:text-[#111] hover:bg-black/5 rounded-none flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+                        >
+                          <ArchiveIcon className="w-3.5 h-3.5" /> Archive
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOpenDropdownId(null);
+                            setDeleteConfirmationId(form.id);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-none flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Actions Row */}
@@ -118,7 +133,7 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
                   <button
                     type="button"
                     onClick={() => router.push(`/dashboard/edit/${form.id}`)}
-                    className="h-8 px-4 text-xs font-semibold bg-[#1C1C1E] border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-all duration-200 cursor-pointer"
+                    className="h-8 px-4 text-xs font-semibold bg-white border border-black/10 text-[#444] hover:text-[#111] hover:bg-black/5 rounded-none transition-all duration-200 cursor-pointer"
                   >
                     Edit
                   </button>
@@ -129,21 +144,30 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
                       e.stopPropagation();
                       onPublishClick(form);
                     }}
-                    className="h-8 px-4 text-xs bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white border-none font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-all duration-200"
+                    className="h-8 px-4 text-xs bg-[#2563EB] hover:bg-[#2563EB]/90 text-white border-none font-semibold rounded-none flex items-center gap-1 cursor-pointer transition-all duration-200"
                   >
                     {form.isPublished ? "Share" : "Publish"} <ArrowRight className="w-3.5 h-3.5" />
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirmationId(form.id);
-                    }}
-                    className="h-8 px-3 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer transition-all duration-200 ml-auto"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
-                  </button>
+                  <div className="ml-auto flex items-center">
+                    {/* Status Badge moved here */}
+                    {form.isPublished ? (
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        </span>
+                        Published
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-white flex items-center gap-1.5 px-2.5 py-1 bg-zinc-500 border border-zinc-600 rounded-full">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        Unpublished
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -152,10 +176,10 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
           {/* Add Extra Quiz card */}
           <div
             onClick={onCreateClick}
-            className="group border border-dashed border-zinc-800 hover:border-[#FF6B35] bg-transparent hover:bg-[#161616]/40 p-5 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer min-h-[80px]"
+            className="group border border-dashed border-zinc-300 hover:border-[#2563EB] bg-transparent hover:bg-white/40 p-5 rounded-none flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer min-h-[80px]"
           >
-            <Plus className="w-4 h-4 text-zinc-500 group-hover:text-[#FF6B35] transition-colors" />
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 group-hover:text-white transition-colors">
+            <Plus className="w-4 h-4 text-zinc-500 group-hover:text-[#2563EB] transition-colors" />
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 group-hover:text-[#111] transition-colors">
               Add Extra Quiz
             </span>
           </div>
@@ -192,7 +216,7 @@ export function FormsList({ forms, sortBy, setSortBy, onCreateClick, onPublishCl
                 <button
                   type="button"
                   onClick={() => handleDelete(deleteConfirmationId)}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-bold uppercase tracking-widest bg-error text-white hover:bg-error/90 h-11 px-4 py-2 transition-colors cursor-pointer flex-1 border-none shadow-sm"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-bold uppercase tracking-widest bg-error text-white hover:bg-error/90 h-11 px-4 py-2 transition-colors cursor-pointer flex-1 border-none shadow-sm"
                 >
                   Delete
                 </button>

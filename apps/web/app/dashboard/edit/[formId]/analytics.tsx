@@ -22,7 +22,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
   if (!analytics) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-[#FF6B35]" />
+        <Loader2 className="w-10 h-10 animate-spin text-[#2563EB]" />
         <span className="text-xs font-black uppercase tracking-widest text-[#666]">Gathering Form Insights...</span>
       </div>
     );
@@ -43,7 +43,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
     RATING: "#EF4444",        // red
     NUMBER: "#06B6D4",        // cyan
     DATE: "#EC4899",          // pink
-    FILE: "#F97316",          // orange
+    FILE: "#2563EB",          // orange
   };
 
   // Sparkline data generation (ensure some points are populated)
@@ -60,12 +60,12 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Card 1: Users */}
-        <div className="bg-[#161616] p-6 rounded-2xl flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+        <div className="bg-white/60 p-6 rounded-none flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
           <div>
             <span className="text-[11px] uppercase tracking-wider text-[#666] font-bold flex items-center gap-1.5">
               <Users className="w-4 h-4 text-[#666]" /> Total Responses
             </span>
-            <h2 className="text-4xl font-extrabold tracking-tight mt-2 text-white">{totalSubmissions}</h2>
+            <h2 className="text-4xl font-extrabold tracking-tight mt-2 text-[#111]">{totalSubmissions}</h2>
             <span className="text-[11px] text-emerald-500 font-bold mt-1.5 block">
               +100% from last week
             </span>
@@ -73,20 +73,20 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
         </div>
 
         {/* Card 2: Completion Rate */}
-        <div className="bg-[#161616] p-6 rounded-2xl flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+        <div className="bg-white/60 p-6 rounded-none flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
           <div>
             <span className="text-[11px] uppercase tracking-wider text-[#666] font-bold flex items-center gap-1.5">
               <CheckCircle className="w-4 h-4 text-[#666]" /> Completion Rate
             </span>
-            <h2 className="text-4xl font-extrabold tracking-tight mt-2 text-white">{completionRate}%</h2>
-            <span className="text-[11px] text-[#A1A1A1] font-bold mt-1.5 block">
+            <h2 className="text-4xl font-extrabold tracking-tight mt-2 text-[#111]">{completionRate}%</h2>
+            <span className="text-[11px] text-[#666] font-bold mt-1.5 block">
               All submissions completed
             </span>
           </div>
         </div>
 
         {/* Card 3: Activity Sparkline */}
-        <div className="bg-[#161616] p-6 rounded-2xl flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+        <div className="bg-white/60 p-6 rounded-none flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
           <div className="w-full">
             <span className="text-[11px] uppercase tracking-wider text-[#666] font-bold flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-[#666]" /> Activity Trend
@@ -97,15 +97,15 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                   <Area 
                     type="monotone" 
                     dataKey="count" 
-                    stroke="#FF6B35" 
+                    stroke="#2563EB" 
                     strokeWidth={2.5} 
                     fillOpacity={0.15} 
-                    fill="#FF6B35" 
+                    fill="#2563EB" 
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <span className="text-[11px] text-[#A1A1A1] font-bold mt-1.5 block">
+            <span className="text-[11px] text-[#666] font-bold mt-1.5 block">
               Last 7 days
             </span>
           </div>
@@ -117,9 +117,9 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
       <div className="flex flex-col gap-6">
         
         {/* Section Header: Sentence case, muted icon, full width bottom hairline line */}
-        <div className="flex items-center gap-2 pb-2 border-b border-[#1F1F1F]">
+        <div className="flex items-center gap-2 pb-2 border-b border-black/10">
           <BarChart3 className="w-4 h-4 text-[#666]" />
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-sm font-semibold text-[#111]">
             Question-by-question breakdown
           </h3>
         </div>
@@ -129,27 +129,27 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
             const agg = aggregations[q.id];
             if (!agg) return null;
 
-            const typeColor = TYPE_COLORS[q.fieldType] || "#FF6B35";
+            const typeColor = TYPE_COLORS[q.fieldType] || "#2563EB";
 
             return (
-              <div key={q.id} className="bg-[#161616] p-5 rounded-2xl flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+              <div key={q.id} className="bg-white/60 p-5 rounded-none flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
                 <div>
                   
                   {/* Card Header: type color badge left, response count badge right */}
-                  <div className="flex items-center justify-between pb-3 border-b border-[#1F1F1F]">
+                  <div className="flex items-center justify-between pb-3 border-b border-black/10">
                     <span 
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white"
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-[#111]"
                       style={{ backgroundColor: typeColor }}
                     >
                       {q.fieldType.replace("_", " ")}
                     </span>
-                    <span className="text-[10px] bg-[#242424] text-white px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-[10px] bg-[#242424] text-[#111] px-2 py-0.5 rounded-full font-bold">
                       {agg.totalResponses} Responses
                     </span>
                   </div>
                   
                   {/* Question Text (Truncated) */}
-                  <h4 className="text-base font-bold tracking-tight mt-3 text-white truncate" title={q.label || "Untitled Question"}>
+                  <h4 className="text-base font-bold tracking-tight mt-3 text-[#111] truncate" title={q.label || "Untitled Question"}>
                     {q.label || "Untitled Question"}
                   </h4>
                 </div>
@@ -160,7 +160,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                   {["MULTIPLE_CHOICE", "DROPDOWN", "YES_NO", "CHECKBOX"].includes(q.fieldType) && (
                     <div className="h-32 w-full">
                       {agg.distribution.length === 0 ? (
-                        <p className="text-[10px] text-[#A1A1A1] uppercase text-center py-10">No data recorded</p>
+                        <p className="text-[10px] text-[#666] uppercase text-center py-10">No data recorded</p>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={agg.distribution} layout="vertical" margin={{ left: -10, right: 10 }}>
@@ -177,18 +177,18 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                   {/* Rating/Slider (Distribution and Stats) */}
                   {["SLIDER", "RATING"].includes(q.fieldType) && (
                     <div className="flex flex-col gap-3">
-                      <div className="grid grid-cols-3 gap-2 text-center bg-[#0F0F0F] p-3 rounded-lg border border-[#1F1F1F]">
+                      <div className="grid grid-cols-3 gap-2 text-center bg-transparent p-3 rounded-none border border-black/10">
                         <div>
                           <p className="text-[8px] font-bold text-[#666] uppercase tracking-wider">Average</p>
-                          <h3 className="text-lg font-bold mt-0.5 text-white">{agg.average || 0}</h3>
+                          <h3 className="text-lg font-bold mt-0.5 text-[#111]">{agg.average || 0}</h3>
                         </div>
                         <div>
                           <p className="text-[8px] font-bold text-[#666] uppercase tracking-wider">Minimum</p>
-                          <h3 className="text-lg font-bold mt-0.5 text-white">{agg.min || 0}</h3>
+                          <h3 className="text-lg font-bold mt-0.5 text-[#111]">{agg.min || 0}</h3>
                         </div>
                         <div>
                           <p className="text-[8px] font-bold text-[#666] uppercase tracking-wider">Maximum</p>
-                          <h3 className="text-lg font-bold mt-0.5 text-white">{agg.max || 0}</h3>
+                          <h3 className="text-lg font-bold mt-0.5 text-[#111]">{agg.max || 0}</h3>
                         </div>
                       </div>
 
@@ -211,7 +211,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                   {!["MULTIPLE_CHOICE", "DROPDOWN", "YES_NO", "CHECKBOX", "SLIDER", "RATING"].includes(q.fieldType) && (
                     <div className="flex flex-col gap-2 max-h-36 overflow-y-auto mt-2 pr-1">
                       {(agg.recentAnswers || []).slice(0, 4).map((ans: string, aIdx: number) => (
-                        <div key={aIdx} className="text-xs bg-[#0F0F0F] px-3 py-2 border border-[#1F1F1F] rounded-lg leading-relaxed break-words font-semibold text-[#A1A1A1]">
+                        <div key={aIdx} className="text-xs bg-transparent px-3 py-2 border border-black/10 rounded-none leading-relaxed break-words font-semibold text-[#666]">
                           {ans}
                         </div>
                       ))}
@@ -224,7 +224,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                 </div>
 
                 {/* Hairline card separation divider */}
-                <div className="border-t border-[#1F1F1F] w-full my-3"></div>
+                <div className="border-t border-black/10 w-full my-3"></div>
 
                 {/* Card Footer: Latest response preview + relative timestamp */}
                 <div className="text-[13px] text-[#666] truncate flex items-center justify-between">
@@ -242,18 +242,18 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
       <div className="flex flex-col gap-4">
         
         {/* Section Header */}
-        <div className="flex items-center gap-2 pb-2 border-b border-[#1F1F1F]">
+        <div className="flex items-center gap-2 pb-2 border-b border-black/10">
           <List className="w-4 h-4 text-[#666]" />
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-sm font-semibold text-[#111]">
             Participant submissions
           </h3>
         </div>
         
-        <div className="bg-[#161616] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+        <div className="bg-white/60 rounded-none overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
           <div className="overflow-x-auto w-full">
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
-                <tr className="bg-[#1C1C1C] text-[#A1A1A1] font-bold text-[11px] uppercase tracking-wider">
+                <tr className="bg-black/5 text-[#666] font-bold text-[11px] uppercase tracking-wider">
                   <th className="p-4 w-12">#</th>
                   <th className="p-4">Participant</th>
                   <th className="p-4">Submitted</th>
@@ -269,23 +269,23 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                     : "Anonymous";
 
                   return (
-                    <tr key={sub.id} className="border-b border-[#1F1F1F]/60 last:border-none hover:bg-[#1E1E1E] transition-colors duration-200">
+                    <tr key={sub.id} className="border-b border-black/10/60 last:border-none hover:bg-white transition-colors duration-200">
                       <td className="p-4 font-bold text-[#666]">{sIdx + 1}</td>
-                      <td className="p-4 font-semibold text-white">
+                      <td className="p-4 font-semibold text-[#111]">
                         {String(participant || "Anonymous")}
                       </td>
-                      <td className="p-4 text-[#A1A1A1] font-medium">
+                      <td className="p-4 text-[#666] font-medium">
                         {new Date(sub.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} at {new Date(sub.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="p-4">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#FF6B35]/15 text-[#FF6B35] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                          <CheckCircle className="w-3 h-3 text-[#FF6B35]" /> Complete
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#2563EB]/15 text-[#2563EB] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                          <CheckCircle className="w-3 h-3 text-[#2563EB]" /> Complete
                         </span>
                       </td>
                       <td className="p-4 text-right">
                         <button
                           onClick={() => setSelectedSubmission(sub)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-transparent border border-[#FF6B35]/20 hover:border-[#FF6B35]/60 hover:bg-[#FF6B35]/10 text-[#FF6B35] transition-all duration-200 font-semibold uppercase tracking-wider text-[10px] rounded-lg cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-transparent border border-[#2563EB]/20 hover:border-[#2563EB]/60 hover:bg-[#2563EB]/10 text-[#2563EB] transition-all duration-200 font-semibold uppercase tracking-wider text-[10px] rounded-none cursor-pointer"
                         >
                           Analyze <ArrowUpRight className="w-3.5 h-3.5" />
                         </button>
@@ -311,23 +311,23 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
           onClick={() => setSelectedSubmission(null)}
         >
           <div 
-            className="bg-[#161616] border border-[#1F1F1F] w-full max-w-xl flex flex-col gap-0 shadow-2xl rounded-2xl overflow-hidden"
+            className="bg-white/60 border border-black/10 w-full max-w-xl flex flex-col gap-0 shadow-2xl rounded-none overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            <div className="border-b border-[#1F1F1F] px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-widest text-white">
+            <div className="border-b border-black/10 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-widest text-[#111]">
                 Response Details
               </h2>
               <button 
                 onClick={() => setSelectedSubmission(null)} 
-                className="text-[#666] hover:text-white text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none"
+                className="text-[#666] hover:text-[#111] text-xs font-bold uppercase tracking-widest cursor-pointer bg-transparent border-none"
               >
                 ✕
               </button>
             </div>
             
             <div className="flex flex-col gap-4 p-6 max-h-[60vh] overflow-y-auto">
-              <p className="text-[10px] text-[#A1A1A1] uppercase font-bold pb-2 border-b border-[#1F1F1F]">
+              <p className="text-[10px] text-[#666] uppercase font-bold pb-2 border-b border-black/10">
                 Submitted at: {new Date(selectedSubmission.createdAt).toLocaleString()}
               </p>
               
@@ -337,7 +337,7 @@ export default function AnalyticsPanel({ formId, questions, analytics }: Analyti
                   return (
                     <div key={q.id} className="flex flex-col gap-1.5">
                       <p className="text-xs font-bold text-[#666]">{q.label || "Untitled"}</p>
-                      <div className="bg-[#0F0F0F] px-4 py-3 border border-[#1F1F1F] rounded-lg text-sm text-white font-semibold break-words">
+                      <div className="bg-transparent px-4 py-3 border border-black/10 rounded-none text-sm text-[#111] font-semibold break-words">
                         {ans || <em className="text-neutral-500">Unanswered</em>}
                       </div>
                     </div>

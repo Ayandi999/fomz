@@ -11,21 +11,21 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B35]">Product</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#2563EB]">Product</span>
           <a href="#problem" className="text-xs text-gray-500 hover:text-[#111] transition-colors">The Problem</a>
           <a href="#features" className="text-xs text-gray-500 hover:text-[#111] transition-colors">Conversational Flow</a>
           <a href="#demo" className="text-xs text-gray-500 hover:text-[#111] transition-colors">Interactive Demo</a>
         </div>
 
         <div className="flex flex-col gap-3">
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B35]">Developer</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#2563EB]">Developer</span>
           <span className="text-xs text-gray-500 hover:text-[#111] transition-colors cursor-pointer">Documentation</span>
           <span className="text-xs text-gray-500 hover:text-[#111] transition-colors cursor-pointer">Guides & APIs</span>
           <span className="text-xs text-gray-500 hover:text-[#111] transition-colors cursor-pointer">Status Updates</span>
         </div>
 
         <div className="flex flex-col gap-3">
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B35]">Legal</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#2563EB]">Legal</span>
           <span className="text-xs text-gray-500 hover:text-[#111] transition-colors cursor-pointer">Privacy Policy</span>
           <span className="text-xs text-gray-500 hover:text-[#111] transition-colors cursor-pointer">Terms of Service</span>
           <span className="text-xs text-gray-500 hover:text-[#111] transition-colors cursor-pointer">Data Compliance</span>

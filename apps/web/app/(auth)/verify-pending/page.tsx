@@ -14,11 +14,11 @@ function VerifyPendingContent() {
       
       {/* Background ambient blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-48 left-1/4 w-[450px] h-[450px] bg-[#FF6B35]/8 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute top-48 right-1/4 w-[400px] h-[400px] bg-[#FF6B35]/4 rounded-full blur-[140px] animate-pulse" />
+        <div className="absolute -top-48 left-1/4 w-[450px] h-[450px] bg-[#2563EB]/8 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute top-48 right-1/4 w-[400px] h-[400px] bg-[#2563EB]/4 rounded-full blur-[140px] animate-pulse" />
       </div>
 
-      <div className="w-full max-w-md bg-white/[0.02] backdrop-blur-2xl p-8 rounded-3xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-6 relative z-10">
+      <div className="w-full max-w-md bg-white/[0.02] backdrop-blur-2xl p-8 rounded-none border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-6 relative z-10">
         
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center gap-2 border-b border-white/5 pb-5">
@@ -33,17 +33,17 @@ function VerifyPendingContent() {
 
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B35]">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#2563EB]">
               {type === "reset" ? "Reset Link Sent To:" : "Verification Link Sent To:"}
             </span>
-            <div className="bg-black/40 border border-white/10 px-4 py-3.5 text-center font-bold text-white rounded-xl break-all select-all text-sm tracking-wide">
+            <div className="bg-black/40 border border-white/10 px-4 py-3.5 text-center font-bold text-white rounded-none break-all select-all text-sm tracking-wide">
               {email}
             </div>
           </div>
 
           <div className="border-t border-white/5 pt-4 flex flex-col gap-2">
             <span className="text-[11px] font-black uppercase tracking-widest text-white flex items-center gap-1.5">
-              <MailCheck className="w-4 h-4 text-[#FF6B35]" /> Action Required
+              <MailCheck className="w-4 h-4 text-[#2563EB]" /> Action Required
             </span>
             <p className="text-[11px] text-[#A1A1A1] uppercase tracking-widest leading-relaxed font-semibold">
               {type === "reset" 
@@ -62,7 +62,7 @@ function VerifyPendingPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen w-full bg-[#050505] flex justify-center items-center">
-        <div className="text-[#FF6B35] animate-pulse uppercase tracking-widest text-xs font-black">Loading...</div>
+        <div className="text-[#2563EB] animate-pulse uppercase tracking-widest text-xs font-black">Loading...</div>
       </div>
     }>
       <VerifyPendingContent />

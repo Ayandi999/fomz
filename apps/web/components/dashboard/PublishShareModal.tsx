@@ -120,7 +120,7 @@ export function PublishShareModal({ form, isOpen, onClose, onSuccess }: PublishS
       onClick={onClose}
     >
       <div
-        className="bg-card border border-border w-full max-w-md flex flex-col gap-0 shadow-2xl text-foreground rounded-lg overflow-hidden animate-fade-in"
+        className="bg-card border border-border w-full max-w-md flex flex-col gap-0 shadow-2xl text-foreground rounded-none overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-b border-border px-6 py-4 flex items-center justify-between">
@@ -210,7 +210,7 @@ export function PublishShareModal({ form, isOpen, onClose, onSuccess }: PublishS
                   disabled={modalIsPublished}
                   checked={modalIsPasswordProtected}
                   onChange={(e) => setModalIsPasswordProtected(e.target.checked)}
-                  className={`w-4 h-4 accent-[#FF6B35] cursor-pointer ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
+                  className={`w-4 h-4 accent-[#2563EB] cursor-pointer ${modalIsPublished ? "opacity-40 cursor-not-allowed" : ""}`}
                 />
               </div>
               {modalIsPasswordProtected && (
@@ -248,14 +248,14 @@ export function PublishShareModal({ form, isOpen, onClose, onSuccess }: PublishS
                   modalAllowedDomains.map((dom) => (
                     <div
                       key={dom}
-                      className="flex items-center gap-1.5 bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-white text-[10px] font-bold px-2.5 py-1 rounded"
+                      className="flex items-center gap-1.5 bg-[#2563EB]/15 border border-[#2563EB]/30 text-white text-[10px] font-bold px-2.5 py-1 rounded"
                     >
                       <span>{dom}</span>
                       <button
                         type="button"
                         disabled={modalIsPublished}
                         onClick={() => setModalAllowedDomains(prev => prev.filter(d => d !== dom))}
-                        className={`text-[#FF6B35] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer ${modalIsPublished ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
+                        className={`text-[#2563EB] hover:text-white transition-colors font-bold border-none bg-transparent cursor-pointer ${modalIsPublished ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
                       >
                         ✕
                       </button>

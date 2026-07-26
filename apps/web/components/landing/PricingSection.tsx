@@ -32,13 +32,13 @@ export function PricingSection() {
         <div className="mt-8 mb-12 flex items-center gap-2 bg-white/60 p-1 rounded-full border border-black/5">
           <button
             onClick={() => setIsYearly(false)}
-            className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 cursor-pointer ${!isYearly ? 'bg-[#FF6B35] text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-black'}`}
+            className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 cursor-pointer ${!isYearly ? 'bg-[#2563EB] text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-black'}`}
           >
             Monthly
           </button>
           <button
             onClick={() => setIsYearly(true)}
-            className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer ${isYearly ? 'bg-[#FF6B35] text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-black'}`}
+            className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer ${isYearly ? 'bg-[#2563EB] text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-black'}`}
           >
             Yearly
             <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors ${isYearly ? 'bg-green-500 text-white' : 'bg-green-500/20 text-green-400'}`}>Save 20%</span>
@@ -64,16 +64,16 @@ export function PricingSection() {
                 </li>
               ))}
             </ul>
-            <button className="w-full mt-8 py-3 px-6 rounded-xl border border-black/10 bg-transparent text-[#111] font-bold transition-colors cursor-pointer hover:bg-white hover:border-black/20 focus:ring-2 focus:ring-black/10 outline-none">
+            <button className="w-full mt-8 py-3 px-6 rounded-none border border-black/10 bg-transparent text-[#111] font-bold transition-colors cursor-pointer hover:bg-white hover:border-black/20 focus:ring-2 focus:ring-black/10 outline-none">
               Get Started
             </button>
           </div>
 
           {/* Pro */}
-          <div className={`order-first lg:order-none relative bg-white/60 rounded-[20px] p-8 border-x border-b border-t-[3px] border-x-black/5 border-b-black/5 border-t-[#FF6B35] flex flex-col shadow-lg transition-all duration-300 ${prefersReducedMotion ? '' : 'hover:scale-[1.02] hover:-translate-y-1'}`}
+          <div className={`order-first lg:order-none relative bg-white/60 rounded-[20px] p-8 border-x border-b border-t-[3px] border-x-black/5 border-b-black/5 border-t-[#2563EB] flex flex-col shadow-lg transition-all duration-300 ${prefersReducedMotion ? '' : 'hover:scale-[1.02] hover:-translate-y-1'}`}
                style={!prefersReducedMotion ? { boxShadow: "0 0 40px rgba(255,107,53,0.08)" } : {}}
           >
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF6B35] text-white text-[12px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md whitespace-nowrap">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#2563EB] text-white text-[12px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md whitespace-nowrap">
               ★ Most Popular
             </div>
             <h3 className="text-[24px] font-bold text-[#111] mt-2">Pro</h3>
@@ -96,7 +96,7 @@ export function PricingSection() {
                 </li>
               ))}
             </ul>
-            <button className="w-full mt-8 py-3 px-6 rounded-xl bg-[#FF6B35] text-white text-[14px] font-bold transition-all cursor-pointer hover:brightness-110 hover:shadow-[0_4px_20px_rgba(255,107,53,0.3)] focus:ring-2 focus:ring-[#FF6B35]/50 outline-none">
+            <button className="w-full mt-8 py-3 px-6 rounded-none bg-[#2563EB] text-white text-[14px] font-bold transition-all cursor-pointer hover:brightness-110 hover:shadow-[0_4px_20px_rgba(255,107,53,0.3)] focus:ring-2 focus:ring-[#2563EB]/50 outline-none">
               Start Free Trial →
             </button>
           </div>
@@ -123,14 +123,14 @@ export function PricingSection() {
                 </li>
               ))}
             </ul>
-            <button className="w-full mt-8 py-3 px-6 rounded-xl border border-black/10 bg-transparent text-[#111] font-bold transition-colors cursor-pointer hover:bg-white hover:border-black/20 focus:ring-2 focus:ring-black/10 outline-none">
+            <button className="w-full mt-8 py-3 px-6 rounded-none border border-black/10 bg-transparent text-[#111] font-bold transition-colors cursor-pointer hover:bg-white hover:border-black/20 focus:ring-2 focus:ring-black/10 outline-none">
               Contact Sales
             </button>
           </div>
 
         </div>
         
-        <p className="mt-12 text-center text-gray-500 text-[11px] uppercase tracking-wider font-bold max-w-2xl border border-black/5 bg-white/60 px-6 py-4 rounded-xl shadow-md">
+        <p className="mt-12 text-center text-gray-500 text-[11px] uppercase tracking-wider font-bold max-w-2xl border border-black/5 bg-white/60 px-6 py-4 rounded-none shadow-md">
           * By decree of Lord Gwyn-first lord of cinder and king of Anor Londo:<br/> These features are all available for free to all common non-hollow folks of Anor Londo. Use all features to your heart's content.
         </p>
       </div>

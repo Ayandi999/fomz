@@ -133,7 +133,7 @@ export function InteractiveDemo() {
                   onClick={handleDemoNext}
                   onMouseEnter={() => setCursorHovered(true)}
                   onMouseLeave={() => setCursorHovered(false)}
-                  className="bg-[#1E3A8A] text-white font-bold px-8 py-3.5 rounded-xl hover:bg-[#1E3A8A]/90 transition-colors text-xs uppercase tracking-widest flex items-center gap-2 cursor-pointer shadow-md"
+                  className="bg-[#1E3A8A] text-white font-bold px-8 py-3.5 rounded-none hover:bg-[#1E3A8A]/90 transition-colors text-xs uppercase tracking-widest flex items-center gap-2 cursor-pointer shadow-md"
                 >
                   Next <ArrowRight className="w-4 h-4" />
                 </button>
@@ -142,13 +142,13 @@ export function InteractiveDemo() {
               <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
                 <button
                   onClick={resetDemo}
-                  className="px-6 py-3 border border-black/5 bg-white/60 hover:bg-white/80 text-gray-600 font-bold text-xs uppercase tracking-widest rounded-xl transition-colors cursor-pointer"
+                  className="px-6 py-3 border border-black/5 bg-white/60 hover:bg-white/80 text-gray-600 font-bold text-xs uppercase tracking-widest rounded-none transition-colors cursor-pointer"
                 >
                   Try Again
                 </button>
                 <Link
                   href="/sign-up"
-                  className="px-6 py-3 bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white font-bold text-xs uppercase tracking-widest rounded-xl text-center transition-colors shadow-md"
+                  className="px-6 py-3 bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white font-bold text-xs uppercase tracking-widest rounded-none text-center transition-colors shadow-md"
                 >
                   Create Free Account
                 </Link>

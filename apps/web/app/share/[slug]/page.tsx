@@ -157,7 +157,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
     return (
       <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[#FF6B35]" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
           <p className="text-xs font-black uppercase tracking-widest text-neutral-400">Loading form…</p>
         </div>
       </main>
@@ -167,8 +167,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
   if (isError && ((error as any)?.message === "PASSWORD_REQUIRED" || (error as any)?.message === "INCORRECT_PASSWORD")) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white p-6">
-        <div className="border border-neutral-800/40 bg-[#111111] p-8 max-w-md w-full flex flex-col gap-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-          <div className="w-16 h-16 rounded-full bg-[#FF6B35]/10 flex items-center justify-center mx-auto text-[#FF6B35]">
+        <div className="border border-neutral-800/40 bg-[#111111] p-8 max-w-md w-full flex flex-col gap-6 rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="w-16 h-16 rounded-full bg-[#2563EB]/10 flex items-center justify-center mx-auto text-[#2563EB]">
             <Lock className="w-8 h-8" />
           </div>
           <div className="text-center">
@@ -191,12 +191,12 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
               placeholder="Enter form password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              className="bg-transparent text-white text-lg py-3 px-4 border border-neutral-800 rounded-xl focus:outline-none focus:border-[#FF6B35] transition-colors placeholder-[#4A4A4A]"
+              className="bg-transparent text-white text-lg py-3 px-4 border border-neutral-800 rounded-none focus:outline-none focus:border-[#2563EB] transition-colors placeholder-[#4A4A4A]"
               autoFocus
             />
             <button
               type="submit"
-              className="w-full py-3.5 bg-[#FF6B35] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#FF6B35]/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#FF6B35]/15"
+              className="w-full py-3.5 bg-[#2563EB] text-white font-bold text-xs uppercase tracking-widest rounded-none hover:bg-[#2563EB]/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#2563EB]/15"
             >
               Unlock Form
             </button>
@@ -209,7 +209,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
   if (isError && (error as any)?.message === "UNAUTHORIZED_DOMAIN_RESTRICTED") {
     return (
       <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white p-6">
-        <div className="border border-red-500/20 bg-red-950/10 p-8 max-w-md w-full flex flex-col gap-5 text-center rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+        <div className="border border-red-500/20 bg-red-950/10 p-8 max-w-md w-full flex flex-col gap-5 text-center rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto text-red-400">
             <AlertCircle className="w-8 h-8" />
           </div>
@@ -221,7 +221,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
             onClick={() => {
               router.push(`/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
             }}
-            className="w-full py-3.5 bg-[#FF6B35] text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[#FF6B35]/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#FF6B35]/15"
+            className="w-full py-3.5 bg-[#2563EB] text-white font-bold text-xs uppercase tracking-widest rounded-none hover:bg-[#2563EB]/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#2563EB]/15"
           >
             Try other accounts
           </button>
@@ -234,7 +234,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
     const msg = (error as any)?.message ?? "This form is unavailable";
     return (
       <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white p-6">
-        <div className="border border-red-500/20 bg-red-950/10 p-8 max-w-md w-full flex flex-col gap-4 text-center rounded-3xl">
+        <div className="border border-red-500/20 bg-red-950/10 p-8 max-w-md w-full flex flex-col gap-4 text-center rounded-none">
           <h1 className="text-2xl font-black uppercase tracking-tight text-red-400">Unavailable</h1>
           <p className="text-sm text-neutral-400 uppercase tracking-wider">{msg}</p>
         </div>
@@ -416,7 +416,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                 ease: "easeOut",
                 delay: i * 0.4
               }}
-              className="absolute w-2 h-2 rounded-full bg-[#FF6B35]"
+              className="absolute w-2 h-2 rounded-full bg-[#2563EB]"
             />
           ))}
         </div>
@@ -428,7 +428,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
               cy="26" 
               r="25" 
               fill="none" 
-              stroke="#FF6B35" 
+              stroke="#2563EB" 
               strokeWidth="2" 
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -436,7 +436,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
             />
             <motion.path 
               fill="none" 
-              stroke="#FF6B35" 
+              stroke="#2563EB" 
               strokeWidth="3" 
               strokeLinecap="round" 
               strokeLinejoin="round" 
@@ -470,7 +470,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.4 }}
-            className="px-6 py-3 border border-[#FF6B35] text-[#FF6B35] font-bold rounded-xl text-sm transition-all hover:bg-[#FF6B35]/10 active:scale-95 duration-200"
+            className="px-6 py-3 border border-[#2563EB] text-[#2563EB] font-bold rounded-none text-sm transition-all hover:bg-[#2563EB]/10 active:scale-95 duration-200"
           >
             Create your own form →
           </motion.a>
@@ -564,7 +564,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
           </div>
           <div className="w-1/4 text-right">
             {currentField.isRequired && (
-              <span className="text-[12px] font-bold text-[#FF6B35]">Required *</span>
+              <span className="text-[12px] font-bold text-[#2563EB]">Required *</span>
             )}
           </div>
         </div>
@@ -601,10 +601,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                       value={answers[currentField.id] ?? ""}
                       onChange={e => setAnswer(currentField.id, e.target.value)}
                       placeholder={currentField.placeholder || "Type your answer here..."}
-                      className="bg-transparent text-white text-xl py-3 pr-8 w-full border-b border-neutral-800 focus:outline-none placeholder-[#4A4A4A] transition-colors focus-within:shadow-[inset_0_-1px_0_0_#FF6B35]"
+                      className="bg-transparent text-white text-xl py-3 pr-8 w-full border-b border-neutral-800 focus:outline-none placeholder-[#4A4A4A] transition-colors focus-within:shadow-[inset_0_-1px_0_0_#2563EB]"
                     />
                     {/* Bottom growing border */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF6B35] origin-center scale-x-0 transition-transform duration-300 pointer-events-none focus-within:scale-x-100" />
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#2563EB] origin-center scale-x-0 transition-transform duration-300 pointer-events-none focus-within:scale-x-100" />
                     
                     {/* Green checkmark valid indicator */}
                     {isInputValid && (
@@ -630,7 +630,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                         style={{ height: "auto" }}
                       />
                       {/* Bottom growing border */}
-                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF6B35] origin-center scale-x-0 transition-transform duration-300 pointer-events-none focus-within:scale-x-100" />
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#2563EB] origin-center scale-x-0 transition-transform duration-300 pointer-events-none focus-within:scale-x-100" />
 
                       {/* Green checkmark valid indicator */}
                       {isInputValid && (
@@ -682,7 +682,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                     value={answers[currentField.id] ?? ""}
                     onChange={e => setAnswer(currentField.id, e.target.value)}
                     onClick={(e) => e.currentTarget.showPicker?.()}
-                    className="bg-[#161616] border border-neutral-800 rounded-xl text-white text-lg py-3 px-4 w-full focus:outline-none focus:border-[#FF6B35] transition-colors"
+                    className="bg-[#161616] border border-neutral-800 rounded-none text-white text-lg py-3 px-4 w-full focus:outline-none focus:border-[#2563EB] transition-colors"
                   />
                 )}
 
@@ -713,14 +713,14 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                       <button
                         type="button"
                         onClick={e => { e.stopPropagation(); setPhoneDropdownOpen(o => !o); }}
-                        className="flex items-center gap-1.5 border border-neutral-800 px-2 py-1 text-white text-xs font-bold uppercase rounded-md hover:border-[#FF6B35] transition-colors"
+                        className="flex items-center gap-1.5 border border-neutral-800 px-2 py-1 text-white text-xs font-bold uppercase rounded-none hover:border-[#2563EB] transition-colors"
                       >
                         {phoneCountry.flag} {phoneCountry.code}
                         <span className="text-neutral-500">{phoneCountry.dialCode}</span>
                       </button>
                       {phoneDropdownOpen && (
                         <div
-                          className="absolute bottom-full left-0 mb-2 z-30 w-64 bg-[#161616] border border-neutral-800 shadow-2xl p-2 flex flex-col gap-2 max-h-64 overflow-hidden rounded-xl"
+                          className="absolute bottom-full left-0 mb-2 z-30 w-64 bg-[#161616] border border-neutral-800 shadow-2xl p-2 flex flex-col gap-2 max-h-64 overflow-hidden rounded-none"
                           onClick={e => e.stopPropagation()}
                         >
                           <input
@@ -729,7 +729,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                             value={phoneSearch}
                             onChange={e => setPhoneSearch(e.target.value)}
                             placeholder="Search country..."
-                            className="bg-[#0A0A0A] border border-neutral-800 px-2 py-1.5 text-xs text-white focus:outline-none rounded-md w-full"
+                            className="bg-[#0A0A0A] border border-neutral-800 px-2 py-1.5 text-xs text-white focus:outline-none rounded-none w-full"
                           />
                           <div className="flex flex-col gap-0.5 overflow-y-auto max-h-40">
                             {filteredCountries.map(c => (
@@ -769,14 +769,14 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                         key={opt}
                         type="button"
                         onClick={() => setAnswer(currentField.id, opt)}
-                        className={`flex items-center gap-3 border px-6 py-4 font-bold uppercase tracking-wider text-sm rounded-xl transition-all ${
+                        className={`flex items-center gap-3 border px-6 py-4 font-bold uppercase tracking-wider text-sm rounded-none transition-all ${
                           answers[currentField.id] === opt
-                            ? "border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]"
+                            ? "border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB]"
                             : "border-neutral-800 text-neutral-300 hover:border-neutral-700 bg-neutral-900/30"
                         }`}
                       >
-                        <span className={`w-5 h-5 flex items-center justify-center font-bold text-xs border rounded-md ${
-                          answers[currentField.id] === opt ? "bg-[#FF6B35] text-white border-[#FF6B35]" : "border-neutral-700 text-neutral-500"
+                        <span className={`w-5 h-5 flex items-center justify-center font-bold text-xs border rounded-none ${
+                          answers[currentField.id] === opt ? "bg-[#2563EB] text-white border-[#2563EB]" : "border-neutral-700 text-neutral-500"
                         }`}>
                           {opt[0]}
                         </span>
@@ -800,7 +800,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                       >
                         <Star className={`w-10 h-10 transition-colors ${
                           star <= (ratingHover || Number(answers[currentField.id] ?? 0))
-                            ? "text-[#FF6B35] fill-[#FF6B35]"
+                            ? "text-[#2563EB] fill-[#2563EB]"
                             : "text-neutral-700"
                         }`} />
                       </button>
@@ -816,14 +816,14 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                         key={opt + idx}
                         type="button"
                         onClick={() => setAnswer(currentField.id, opt)}
-                        className={`flex items-center gap-4 border px-5 py-4 text-sm font-bold uppercase tracking-wider rounded-xl transition-all text-left ${
+                        className={`flex items-center gap-4 border px-5 py-4 text-sm font-bold uppercase tracking-wider rounded-none transition-all text-left ${
                           answers[currentField.id] === opt
-                            ? "border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]"
+                            ? "border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB]"
                             : "border-neutral-800 text-neutral-300 hover:border-neutral-700 bg-[#161616]"
                         }`}
                       >
-                        <span className={`w-6 h-6 flex items-center justify-center text-[10px] font-black shrink-0 border rounded-md ${
-                          answers[currentField.id] === opt ? "bg-[#FF6B35] text-white border-[#FF6B35]" : "border-neutral-700 text-neutral-500"
+                        <span className={`w-6 h-6 flex items-center justify-center text-[10px] font-black shrink-0 border rounded-none ${
+                          answers[currentField.id] === opt ? "bg-[#2563EB] text-white border-[#2563EB]" : "border-neutral-700 text-neutral-500"
                         }`}>{String.fromCharCode(65 + idx)}</span>
                         {opt}
                       </button>
@@ -841,14 +841,14 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                           key={opt + idx}
                           type="button"
                           onClick={() => toggleCheckbox(currentField.id, opt)}
-                          className={`flex items-center gap-4 border px-5 py-4 text-sm font-bold uppercase tracking-wider rounded-xl transition-all text-left ${
+                          className={`flex items-center gap-4 border px-5 py-4 text-sm font-bold uppercase tracking-wider rounded-none transition-all text-left ${
                             checked
-                              ? "border-[#FF6B35] bg-[#FF6B35]/10 text-[#FF6B35]"
+                              ? "border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB]"
                               : "border-neutral-800 text-neutral-300 hover:border-neutral-700 bg-[#161616]"
                           }`}
                         >
-                          <span className={`w-5 h-5 flex items-center justify-center shrink-0 border-2 rounded-md transition-colors ${
-                            checked ? "bg-[#FF6B35] border-[#FF6B35]" : "border-neutral-700"
+                          <span className={`w-5 h-5 flex items-center justify-center shrink-0 border-2 rounded-none transition-colors ${
+                            checked ? "bg-[#2563EB] border-[#2563EB]" : "border-neutral-700"
                           }`}>
                             {checked && <Check className="w-3 h-3 text-white" />}
                           </span>
@@ -865,7 +865,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                     <button
                       type="button"
                       onClick={e => { e.stopPropagation(); setDropdownOpen(o => !o); }}
-                      className="w-full flex items-center justify-between border border-neutral-800 rounded-xl hover:border-[#FF6B35] px-4 py-3.5 text-sm font-bold uppercase tracking-wider text-left transition-colors bg-[#161616]"
+                      className="w-full flex items-center justify-between border border-neutral-800 rounded-none hover:border-[#2563EB] px-4 py-3.5 text-sm font-bold uppercase tracking-wider text-left transition-colors bg-[#161616]"
                     >
                       <span className={answers[currentField.id] ? "text-white" : "text-neutral-500"}>
                         {answers[currentField.id] || "Select an option..."}
@@ -873,13 +873,13 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                       <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" />
                     </button>
                     {dropdownOpen && (
-                      <div className="absolute top-full left-0 mt-2 z-20 w-full bg-[#161616] border border-neutral-800 shadow-2xl max-h-48 overflow-y-auto rounded-xl" onClick={e => e.stopPropagation()}>
+                      <div className="absolute top-full left-0 mt-2 z-20 w-full bg-[#161616] border border-neutral-800 shadow-2xl max-h-48 overflow-y-auto rounded-none" onClick={e => e.stopPropagation()}>
                         {choices.map((opt, idx) => (
                           <button
                             key={opt + idx}
                             type="button"
                             onClick={() => { setAnswer(currentField.id, opt); setDropdownOpen(false); }}
-                            className="w-full text-left px-4 py-3 text-sm font-bold uppercase tracking-wide hover:bg-[#FF6B35]/10 hover:text-[#FF6B35] transition-colors text-neutral-300"
+                            className="w-full text-left px-4 py-3 text-sm font-bold uppercase tracking-wide hover:bg-[#2563EB]/10 hover:text-[#2563EB] transition-colors text-neutral-300"
                           >
                             {opt}
                           </button>
@@ -893,9 +893,9 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                 {currentField.fieldType === "SLIDER" && (
                   <div className="flex flex-col gap-4 max-w-lg mt-2">
                     <div className="relative w-full h-2 bg-neutral-800 rounded-full">
-                      <div className="absolute left-0 top-0 bottom-0 bg-[#FF6B35] rounded-full" style={{ width: `${sliderPercent}%` }} />
+                      <div className="absolute left-0 top-0 bottom-0 bg-[#2563EB] rounded-full" style={{ width: `${sliderPercent}%` }} />
                       <div
-                        className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-[#FF6B35] rounded-full border-2 border-[#111111]"
+                        className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-[#2563EB] rounded-full border-2 border-[#111111]"
                         style={{ left: `calc(${sliderPercent}% - 10px)` }}
                       />
                       <input
@@ -909,7 +909,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                     </div>
                     <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-neutral-500">
                       <span>{min}</span>
-                      <span className="text-[#FF6B35] text-sm font-black">{sliderValue}</span>
+                      <span className="text-[#2563EB] text-sm font-black">{sliderValue}</span>
                       <span>{max}</span>
                     </div>
                   </div>
@@ -921,26 +921,26 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                     {childFields.map(child => (
                       <div key={child.id} className="flex flex-col gap-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                          {child.label}{child.isRequired && <span className="text-[#FF6B35] ml-1">*</span>}
+                          {child.label}{child.isRequired && <span className="text-[#2563EB] ml-1">*</span>}
                         </label>
                         {child.fieldType === "EMAIL" ? (
-                          <div className="flex items-center gap-2 border-b border-neutral-800 focus-within:border-[#FF6B35] transition-colors py-2">
+                          <div className="flex items-center gap-2 border-b border-neutral-800 focus-within:border-[#2563EB] transition-colors py-2">
                             <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
                             <input type="email" value={answers[child.id] ?? ""} onChange={e => setAnswer(child.id, e.target.value)} placeholder={child.placeholder || "email@example.com"} className="bg-transparent text-white w-full focus:outline-none placeholder-[#4A4A4A] text-base" />
                           </div>
                         ) : child.fieldType === "PHONE" ? (
-                          <div className="flex items-center gap-2 border-b border-neutral-800 focus-within:border-[#FF6B35] transition-colors py-2">
+                          <div className="flex items-center gap-2 border-b border-neutral-800 focus-within:border-[#2563EB] transition-colors py-2">
                             <PhoneIcon className="w-4 h-4 text-neutral-500 shrink-0" />
                             <input type="tel" value={answers[child.id] ?? ""} onChange={e => setAnswer(child.id, e.target.value.replace(/[^0-9]/g, ""))} placeholder={child.placeholder || "(555) 000-0000"} className="bg-transparent text-white w-full focus:outline-none placeholder-[#4A4A4A] text-base" />
                           </div>
                         ) : child.fieldType === "WEBSITE" ? (
-                          <div className="flex items-center gap-2 border-b border-neutral-800 focus-within:border-[#FF6B35] transition-colors py-2">
+                          <div className="flex items-center gap-2 border-b border-neutral-800 focus-within:border-[#2563EB] transition-colors py-2">
                             <GlobeIcon className="w-4 h-4 text-neutral-500 shrink-0" />
                             <span className="text-neutral-500 font-bold">https://</span>
                             <input type="text" value={answers[child.id] ?? ""} onChange={e => setAnswer(child.id, e.target.value)} placeholder={child.placeholder || "yourwebsite.com"} className="bg-transparent text-white w-full focus:outline-none placeholder-[#4A4A4A] text-base" />
                           </div>
                         ) : (
-                          <input type="text" value={answers[child.id] ?? ""} onChange={e => setAnswer(child.id, e.target.value)} placeholder={child.placeholder || ""} className="bg-transparent border-b border-neutral-800 focus:border-[#FF6B35] text-white py-2 w-full focus:outline-none transition-colors placeholder-[#4A4A4A] text-base" />
+                          <input type="text" value={answers[child.id] ?? ""} onChange={e => setAnswer(child.id, e.target.value)} placeholder={child.placeholder || ""} className="bg-transparent border-b border-neutral-800 focus:border-[#2563EB] text-white py-2 w-full focus:outline-none transition-colors placeholder-[#4A4A4A] text-base" />
                         )}
                       </div>
                     ))}
@@ -1050,8 +1050,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
 
                   return (
                     <div className="flex flex-col gap-4 mt-2 max-w-lg w-full">
-                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#A1A1A1] bg-[#161616] p-3 border border-neutral-800/60 rounded-xl">
-                        <AlertCircle className="w-3.5 h-3.5 text-[#FF6B35] shrink-0" />
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#A1A1A1] bg-[#161616] p-3 border border-neutral-800/60 rounded-none">
+                        <AlertCircle className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
                         {currentField.fieldType === "IMAGE" && "Images: 300KB max (JPEG, PNG)."}
                         {currentField.fieldType === "VIDEO" && "Videos: 10MB max (MP4, WebM)."}
                         {currentField.fieldType === "FILE" && "Documents: 200KB max (PDF)."}
@@ -1060,7 +1060,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
 
                       {currentField.fieldType !== "AUDIO" ? (
                         <div className="flex flex-col gap-4">
-                          <label className="border border-dashed border-neutral-800 hover:border-[#FF6B35] rounded-xl p-8 flex flex-col items-center justify-center gap-3 bg-[#161616]/40 transition-colors cursor-pointer text-center group">
+                          <label className="border border-dashed border-neutral-800 hover:border-[#2563EB] rounded-none p-8 flex flex-col items-center justify-center gap-3 bg-[#161616]/40 transition-colors cursor-pointer text-center group">
                             <input
                               type="file"
                               className="hidden"
@@ -1075,9 +1075,9 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                               }}
                               disabled={isUploading}
                             />
-                            {currentField.fieldType === "IMAGE" && <ImageIcon className="w-8 h-8 text-neutral-500 group-hover:text-[#FF6B35] transition-colors shrink-0" />}
-                            {currentField.fieldType === "VIDEO" && <VideoIcon className="w-8 h-8 text-neutral-500 group-hover:text-[#FF6B35] transition-colors shrink-0" />}
-                            {currentField.fieldType === "FILE" && <FileText className="w-8 h-8 text-neutral-500 group-hover:text-[#FF6B35] transition-colors shrink-0" />}
+                            {currentField.fieldType === "IMAGE" && <ImageIcon className="w-8 h-8 text-neutral-500 group-hover:text-[#2563EB] transition-colors shrink-0" />}
+                            {currentField.fieldType === "VIDEO" && <VideoIcon className="w-8 h-8 text-neutral-500 group-hover:text-[#2563EB] transition-colors shrink-0" />}
+                            {currentField.fieldType === "FILE" && <FileText className="w-8 h-8 text-neutral-500 group-hover:text-[#2563EB] transition-colors shrink-0" />}
                             
                             <span className="text-xs font-bold uppercase tracking-wider text-neutral-300 group-hover:text-white transition-colors">
                               {isUploading ? "Uploading..." : `Select ${currentField.fieldType}`}
@@ -1085,10 +1085,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                           </label>
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-4 border border-neutral-800 p-5 bg-[#161616]/40 rounded-xl">
+                        <div className="flex flex-col gap-4 border border-neutral-800 p-5 bg-[#161616]/40 rounded-none">
                           <div className="flex flex-col gap-2">
                             <span className="text-[10px] font-bold uppercase text-neutral-400">Option 1: Upload Audio File</span>
-                            <label className="border border-neutral-800 hover:border-[#FF6B35] p-3 flex items-center justify-center gap-2 cursor-pointer transition-colors bg-[#161616] rounded-xl">
+                            <label className="border border-neutral-800 hover:border-[#2563EB] p-3 flex items-center justify-center gap-2 cursor-pointer transition-colors bg-[#161616] rounded-none">
                               <input
                                 type="file"
                                 className="hidden"
@@ -1120,7 +1120,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                                     type="button"
                                     onClick={startRecording}
                                     disabled={isUploading}
-                                    className="w-full flex items-center justify-center gap-2 bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white font-bold uppercase tracking-wider text-xs py-3 rounded-xl transition-all"
+                                    className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-bold uppercase tracking-wider text-xs py-3 rounded-none transition-all"
                                   >
                                     <Music className="w-4 h-4 shrink-0" /> Start Recording
                                   </button>
@@ -1128,14 +1128,14 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                                   <button
                                     type="button"
                                     onClick={stopRecording}
-                                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold uppercase tracking-wider text-xs py-3 rounded-xl transition-all"
+                                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold uppercase tracking-wider text-xs py-3 rounded-none transition-all"
                                   >
                                     Stop Recording
                                   </button>
                                 )}
                               </div>
                             ) : (
-                              <div className="flex flex-col gap-3 border border-neutral-800 p-3 bg-neutral-900/50 rounded-xl">
+                              <div className="flex flex-col gap-3 border border-neutral-800 p-3 bg-neutral-900/50 rounded-none">
                                 <span className="text-[10px] font-bold uppercase text-emerald-400 flex items-center gap-1">
                                   <Check className="w-3.5 h-3.5" /> Recording Saved
                                 </span>
@@ -1145,7 +1145,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                                     type="button"
                                     onClick={uploadRecordedAudio}
                                     disabled={isUploading}
-                                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase text-[10px] py-2 rounded-lg transition-colors"
+                                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase text-[10px] py-2 rounded-none transition-colors"
                                   >
                                     <Upload className="w-3.5 h-3.5" /> Upload
                                   </button>
@@ -1153,7 +1153,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                                     type="button"
                                     onClick={resetAudioRecord}
                                     disabled={isUploading}
-                                    className="flex-1 flex items-center justify-center gap-1.5 border border-neutral-800 text-neutral-400 hover:text-white font-bold uppercase text-[10px] py-2 rounded-lg transition-colors"
+                                    className="flex-1 flex items-center justify-center gap-1.5 border border-neutral-800 text-neutral-400 hover:text-white font-bold uppercase text-[10px] py-2 rounded-none transition-colors"
                                   >
                                     Reset
                                   </button>
@@ -1165,25 +1165,25 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                       )}
 
                       {isUploading && (
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-400 bg-[#161616] p-3 border border-neutral-800 rounded-xl">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FF6B35] shrink-0" />
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-400 bg-[#161616] p-3 border border-neutral-800 rounded-none">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2563EB] shrink-0" />
                           {uploadProgress}
                         </div>
                       )}
 
                       {currentUrl && (
-                        <div className="border border-neutral-800 p-4 bg-[#161616]/60 rounded-xl flex flex-col gap-3">
-                          <span className="text-[10px] font-bold uppercase text-[#FF6B35] flex items-center gap-1.5 border-b border-neutral-800 pb-2">
-                            <Check className="w-3.5 h-3.5 text-[#FF6B35] shrink-0" /> Uploaded Successfully
+                        <div className="border border-neutral-800 p-4 bg-[#161616]/60 rounded-none flex flex-col gap-3">
+                          <span className="text-[10px] font-bold uppercase text-[#2563EB] flex items-center gap-1.5 border-b border-neutral-800 pb-2">
+                            <Check className="w-3.5 h-3.5 text-[#2563EB] shrink-0" /> Uploaded Successfully
                           </span>
                           
                           {currentField.fieldType === "IMAGE" && (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={currentUrl} alt="Preview" className="w-full max-h-36 object-contain border border-neutral-800 bg-[#0A0A0A] rounded-lg" />
+                            <img src={currentUrl} alt="Preview" className="w-full max-h-36 object-contain border border-neutral-800 bg-[#0A0A0A] rounded-none" />
                           )}
 
                           {currentField.fieldType === "VIDEO" && (
-                            <video src={currentUrl} controls className="w-full max-h-36 object-contain border border-neutral-800 bg-[#0A0A0A] rounded-lg" />
+                            <video src={currentUrl} controls className="w-full max-h-36 object-contain border border-neutral-800 bg-[#0A0A0A] rounded-none" />
                           )}
 
                           {(currentField.fieldType === "AUDIO" || currentUrl.endsWith(".webm") || currentUrl.endsWith(".mp3") || currentUrl.endsWith(".wav")) && (
@@ -1191,7 +1191,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                           )}
 
                           {currentField.fieldType === "FILE" && (
-                            <div className="flex items-center justify-between gap-4 p-2 bg-[#0A0A0A] border border-neutral-800 rounded-lg">
+                            <div className="flex items-center justify-between gap-4 p-2 bg-[#0A0A0A] border border-neutral-800 rounded-none">
                               <span className="text-[10px] font-bold truncate max-w-[200px]">{currentUrl}</span>
                               <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] font-bold uppercase border border-neutral-700 px-2 py-1 hover:border-white transition-colors rounded text-white">Open</a>
                             </div>
@@ -1234,7 +1234,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
               type="button"
               onClick={handleNext}
               disabled={isSubmitting || isRequiredEmpty}
-              className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#FF6B35] text-white font-bold uppercase tracking-wider text-[14px] px-7 py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.03] hover:brightness-110 hover:shadow-[0_4px_20px_rgba(255,107,53,0.3)] active:scale-[0.97] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:brightness-100 disabled:hover:shadow-none disabled:cursor-not-allowed select-none"
+              className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#2563EB] text-white font-bold uppercase tracking-wider text-[14px] px-7 py-3.5 rounded-none transition-all duration-200 hover:scale-[1.03] hover:brightness-110 hover:shadow-[0_4px_20px_rgba(255,107,53,0.3)] active:scale-[0.97] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:brightness-100 disabled:hover:shadow-none disabled:cursor-not-allowed select-none"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -1259,7 +1259,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ slug: str
                   transition={isActive ? { type: "keyframes", duration: 0.3, ease: "easeOut" } : { type: "spring", stiffness: 300, damping: 15 }}
                   className={`flex items-center justify-center rounded-full transition-all duration-300 ${
                     isActive 
-                      ? "w-2.5 h-2.5 bg-[#FF6B35]" 
+                      ? "w-2.5 h-2.5 bg-[#2563EB]" 
                       : isCompleted 
                         ? "w-[7px] h-[7px] bg-[#22C55E]" 
                         : "w-1.5 h-1.5 bg-[#2A2A2A]"

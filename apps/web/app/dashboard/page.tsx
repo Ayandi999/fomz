@@ -108,7 +108,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-[#0F0F0F] text-foreground antialiased font-sans select-none pb-12">
+    <div className="min-h-screen w-full flex flex-col paper-texture text-[#111] antialiased font-sans select-none pb-12">
       <style>{`
         .scrollbar-thin::-webkit-scrollbar {
           width: 5px;
@@ -130,22 +130,24 @@ export default function DashboardPage() {
       <div className="flex flex-1 overflow-hidden h-[calc(100vh-64px)]">
         <Sidebar />
 
-        <main className="flex-1 w-full max-w-none px-4 lg:px-8 py-8 overflow-y-auto scrollbar-thin">
-          <div className="flex flex-col lg:flex-row gap-8">
-            <FormsList 
-              forms={sortedForms}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              onCreateClick={() => setShowCreate(true)}
-              onPublishClick={(form) => setSelectedFormForModal(form)}
-              onDeleteForm={handleDeleteForm}
-            />
-            
-            <QuickStartTemplates 
-              onCreateFromTemplate={handleCreateFromTemplate} 
-            />
-          </div>
+        {/* Center Pane: FormsList */}
+        <main className="flex-1 w-full max-w-none overflow-y-auto scrollbar-thin border-r border-black/10 px-6 lg:px-12 py-8 bg-transparent">
+          <FormsList 
+            forms={sortedForms}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            onCreateClick={() => setShowCreate(true)}
+            onPublishClick={(form) => setSelectedFormForModal(form)}
+            onDeleteForm={handleDeleteForm}
+          />
         </main>
+
+        {/* Right Pane: Templates */}
+        <aside className="hidden lg:flex w-80 shrink-0 flex-col overflow-y-auto scrollbar-thin px-6 py-8 bg-transparent">
+          <QuickStartTemplates 
+            onCreateFromTemplate={handleCreateFromTemplate} 
+          />
+        </aside>
       </div>
 
       <CreateFormModal 
