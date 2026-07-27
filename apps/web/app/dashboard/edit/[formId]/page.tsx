@@ -27,6 +27,7 @@ import { SettingsSidebar } from "~/components/edit/SettingsSidebar";
 import { EditHeader } from "~/components/edit/EditHeader";
 import { LivePreview } from "~/components/edit/LivePreview";
 import { DynamicFieldCard } from "~/components/edit/cards/DynamicFieldCard";
+import { themeRegistry } from "~/components/themes/registry";
 
 export type FieldType =
   | "LONG_TEXT"
@@ -90,50 +91,39 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
   // Dynamic Themes state
   const { data: themes } = trpc.forms.getThemes.useQuery();
-  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
-  const [activeThemeCss, setActiveThemeCss] = useState<string>("");
+  const [selectedThemeKey, setSelectedThemeKey] = useState<string | null>(null);
 
-  const getThemeMutation = trpc.forms.getTheme.useMutation({
-    onSuccess: (data: { code: { css: string } }) => {
-      setActiveThemeCss(data.code.css);
-    }
-  });
+  const getThemeMutation = trpc.forms.getTheme.useMutation();
+
 
   const updateThemeMutation = trpc.forms.updateFormTheme.useMutation();
 
   const selectedThemeIdRef = useRef<string | null>(null);
   useEffect(() => {
-    selectedThemeIdRef.current = selectedThemeId;
-  }, [selectedThemeId]);
+    selectedThemeIdRef.current = selectedThemeKey;
+  }, [selectedThemeKey]);
 
-  const handleThemeChange = async (themeId: string | null) => {
-    setSelectedThemeId(themeId);
+  const handleThemeChange = async (themeKey: string | null) => {
+    setSelectedThemeKey(themeKey);
     setIsDirty(true);
     isDirtyRef.current = true;
-    if (themeId) {
+    if (themeKey) {
       try {
-        const t = await getThemeMutation.mutateAsync({ themeId });
-        setActiveThemeCss(t.code.css);
+        const t = await getThemeMutation.mutateAsync({ themeKey });
         toast.success(`Theme "${t.name}" loaded!`);
       } catch (err) {
-        toast.error("Failed to load theme styles");
+        toast.error("Failed to load theme");
       }
-    } else {
-      setActiveThemeCss("");
     }
   };
 
   // Sync theme when form data is fetched
   useEffect(() => {
-    if (currentForm && currentForm.themeId) {
-      setSelectedThemeId(currentForm.themeId);
-      if (currentForm.themeCode?.css) {
-        setActiveThemeCss(currentForm.themeCode.css);
-      } else {
-        getThemeMutation.mutate({ themeId: currentForm.themeId });
-      }
+    if (currentForm?.themeKey) {
+      setSelectedThemeKey(currentForm.themeKey);
+      getThemeMutation.mutate({ themeKey: currentForm.themeKey });
     }
-  }, [currentForm?.themeId, currentForm?.themeCode?.css]);
+  }, [currentForm?.themeKey]);
 
   useEffect(() => {
     setMounted(true);
@@ -731,7 +721,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     // Save theme configuration draft as well
     await updateThemeMutation.mutateAsync({
       formId,
-      themeId: selectedThemeIdRef.current,
+      themeKey: selectedThemeIdRef.current,
     });
   };
 
@@ -1056,7 +1046,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     setSaveStatus("saving");
     try {
       await executeAutosave(questions);
-      await updateThemeMutation.mutateAsync({ formId, themeId: selectedThemeId });
+      await updateThemeMutation.mutateAsync({ formId, themeKey: selectedThemeKey });
       setSaveStatus("saved");
       setIsDirty(false);
       isDirtyRef.current = false;
@@ -1182,13 +1172,11 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden paper-texture text-[#111]">
-      {activeThemeCss && (
-        <style dangerouslySetInnerHTML={{ __html: activeThemeCss }} />
-      )}
+      
       <div className="w-full h-full flex flex-col">
         
         {/* Navigation Bar - completely custom styled, no borders, ambient elevation */}
-        <EditHeader {...{ activeTab, setActiveTab, handleBackToDashboard, isEditingTitle, editedTitleVal, setEditedTitleVal, handleTitleSubmit, setIsEditingTitle, currentForm, activeThemeCss, selectedThemeId, handleThemeChange, themes, saveStatus, isSaving, saveForm: handleSave, isPublishing, publishStatus, publishFormAsync, handleDownloadCSV, mounted, showProfileMenu, setShowProfileMenu, handleLogout, setShowPublishPanel, user, setIsPreviewOpen, setPreviewStepIndex, setPreviewAnswers, questions, analytics, formId }} />
+        <EditHeader {...{ activeTab, setActiveTab, handleBackToDashboard, isEditingTitle, editedTitleVal, setEditedTitleVal, handleTitleSubmit, setIsEditingTitle, currentForm, selectedThemeKey, handleThemeChange, themes, saveStatus, isSaving, saveForm: handleSave, isPublishing, publishStatus, publishFormAsync, handleDownloadCSV, mounted, showProfileMenu, setShowProfileMenu, handleLogout, setShowPublishPanel, user, setIsPreviewOpen, setPreviewStepIndex, setPreviewAnswers, questions, analytics, formId }} />
 
         {/* Publish / Share Panel Modal */}
         {showPublishPanel && (
@@ -1719,168 +1707,44 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
 
         {/* Fullscreen Form Preview Modal */}
         {isPreviewOpen && (
-          <div className="preview-container fixed inset-0 z-50 bg-neutral-950 text-[#111] flex flex-col justify-between p-6 md:p-12 animate-fade-in overflow-y-auto">
-            {/* Progress bar */}
-            <div className="fixed top-0 left-0 right-0 h-0.5 bg-neutral-800 z-50">
-              <div
-                className="h-full bg-primary transition-all duration-500 ease-out"
-                style={{ width: `${((previewStepIndex + 1) / topLevelQuestions.length) * 100}%` }}
-              />
-            </div>
-
-            {/* Step counter */}
-            <div className="fixed top-4 right-6 z-50">
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                {previewStepIndex + 1} / {topLevelQuestions.length}
-              </span>
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between border-b-2 border-neutral-800 pb-4 mb-8">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-primary text-black">
-                  Preview Mode
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 ml-3">
-                  {currentForm?.title || "Conversational Form"}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsPreviewOpen(false)}
-                className="flex items-center gap-1 text-xs font-black uppercase tracking-widest hover:text-[#111] transition-colors cursor-pointer bg-transparent border-none text-neutral-400"
-              >
-                Exit Preview <Plus className="w-4 h-4 rotate-45 shrink-0" />
-              </button>
-            </div>
-
-            {/* Active Preview Question Canvas */}
-            <div className="flex-1 flex flex-col items-center justify-center py-12">
-              {(() => {
-                const q = topLevelQuestions[previewStepIndex];
-                if (!q) return null;
-                const isThankYou = q.fieldType === "THANK_YOU";
-
-                return (
-                  <div className="w-full max-w-2xl flex flex-col gap-8 animate-fade-in px-4 md:px-8">
-                    {/* Header Step Progress (unless it's THANK_YOU) */}
-                    {!isThankYou && (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">
-                        Step {previewStepIndex + 1} of {topLevelQuestions.length}
-                      </span>
-                    )}
-
-                    {/* Question Header */}
-                    {isThankYou ? (
-                      <div className="flex flex-col items-center justify-center text-center py-8 w-full animate-fade-in">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-widest text-[#111]">
-                          Thank You!
-                        </h1>
-                        {q.description && (
-                          <p className="text-neutral-450 text-base leading-relaxed mt-4 max-w-lg">
-                            {q.description}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <h2 className="text-2xl md:text-3xl font-black tracking-tight text-[#111] leading-tight relative">
-                          {q.label}
-                          {q.isRequired && (
-                            <span className="absolute -top-1 -right-3 text-red-400 font-extrabold text-2xl select-none">*</span>
-                          )}
-                        </h2>
-                        {q.description && (
-                          <p className="text-neutral-500 text-sm leading-relaxed max-w-xl">
-                            {q.description}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                        <DynamicFieldCard
-                          question={q}
-                          mode="test"
-                          value={previewAnswers[q.labelKey]}
-                          onChange={(val) => setPreviewAnswers({ ...previewAnswers, [q.labelKey]: val })}
-                          getQuestionChoices={(q) => {
-                            if (!q.placeholder) return ["Option A", "Option B", "Option C"];
-                            try {
-                              const parsed = JSON.parse(q.placeholder);
-                              if (Array.isArray(parsed)) return parsed;
-                            } catch (e) {
-                              if (q.placeholder.includes(",")) return q.placeholder.split(",").map((s) => s.trim());
-                            }
-                            return ["Option A", "Option B", "Option C"];
-                          }}
-                          getSliderBoundaries={(q) => {
-                            if (!q.placeholder) return { min: 0, max: 100 };
-                            try {
-                              const parsed = JSON.parse(q.placeholder);
-                              if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-                                return {
-                                  min: typeof parsed.min === "number" ? parsed.min : 0,
-                                  max: typeof parsed.max === "number" ? parsed.max : 100,
-                                };
-                              }
-                            } catch (e) {}
-                            return { min: 0, max: 100 };
-                          }}
-                          childrenFields={questions.filter(item => item.parentId === (q.id || q.clientTempId))}
-                        />
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Footer Navigation bar */}
-            <div className="border-t-2 border-neutral-800 pt-6 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setPreviewStepIndex(Math.max(0, previewStepIndex - 1))}
-                disabled={previewStepIndex === 0}
-                className="flex items-center gap-2 text-neutral-500 hover:text-[#111] transition-colors text-xs font-black uppercase tracking-widest bg-transparent border-none cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-              
-              {(() => {
-                const q = topLevelQuestions[previewStepIndex];
-                if (!q) return null;
-                const isFinal = previewStepIndex === topLevelQuestions.length - 1;
-                const isThankYou = q.fieldType === "THANK_YOU";
-
-                if (isThankYou) {
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => setIsPreviewOpen(false)}
-                      className="flex items-center gap-2 bg-primary text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-primary/80 transition-colors cursor-pointer"
-                    >
-                      Close Preview
-                    </button>
-                  );
-                }
-
-                const handleNext = () => {
-                  if (!validatePreviewStep(q)) {
-                    return;
-                  }
-
-                  setPreviewStepIndex(previewStepIndex + 1);
-                };
-
-                return (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="flex items-center gap-2 bg-primary text-black font-black uppercase tracking-widest text-sm px-6 py-3 hover:bg-primary/80 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isFinal ? <><Check className="w-4 h-4" /> Submit</> : <>Next <ArrowRight className="w-4 h-4" /></>}
-                  </button>
-                );
-              })()}
-            </div>
+          <div className="preview-container fixed inset-0 z-50 overflow-y-auto bg-white">
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute top-4 right-6 z-[60] flex items-center gap-1 text-xs font-black uppercase tracking-widest text-neutral-800 hover:text-black transition-colors cursor-pointer bg-white/80 px-3 py-1.5 rounded-full shadow-sm"
+            >
+              Exit Preview <Plus className="w-4 h-4 rotate-45 shrink-0" />
+            </button>
+            
+            {(() => {
+              const ThemeComponent = themeRegistry[selectedThemeKey || "lightMode"] || themeRegistry["lightMode"];
+              return (
+                <ThemeComponent
+                  mode="preview"
+                  fields={topLevelQuestions as any}
+                  answers={previewAnswers}
+                  setAnswer={(key: string, val: any) => setPreviewAnswers({ ...previewAnswers, [key]: val })}
+                  stepIndex={previewStepIndex}
+                  setStepIndex={setPreviewStepIndex}
+                  handleNext={() => {
+                    const q = topLevelQuestions[previewStepIndex];
+                    if (validatePreviewStep(q)) {
+                      setPreviewStepIndex(previewStepIndex + 1);
+                    }
+                  }}
+                  handleBack={() => setPreviewStepIndex(Math.max(0, previewStepIndex - 1))}
+                  handleSubmit={async () => {
+                    const q = topLevelQuestions[previewStepIndex];
+                    if (validatePreviewStep(q)) {
+                      toast.success("Form submitted successfully! (Preview)");
+                      setIsPreviewOpen(false);
+                    }
+                  }}
+                  submitted={false}
+                  validationError={""}
+                />
+              );
+            })()}
           </div>
         )}
 

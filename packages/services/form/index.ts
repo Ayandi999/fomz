@@ -19,7 +19,7 @@ import { formField } from "@repo/database/models/formFields";
 import { submissionsTable } from "@repo/database/models/submissions";
 import { answersTable } from "@repo/database/models/answers";
 import { usersTable } from "@repo/database/models/user";
-import { themesTable } from "@repo/database/models/theme";
+import { THEMES_STORE, getThemeByKey } from "./themes";
 import { sendEmail } from "../clients/mail";
 import { cloudinary } from "../clients/cloudinary";
 import { env } from "../env";
@@ -164,14 +164,12 @@ class formService {
         isPasswordProtected: formsTable.isPasswordProtected,
         password: formsTable.password,
         responses: sql<number>`cast(count(${submissionsTable.id}) as integer)`,
-        themeId: formsTable.themeId,
-        themeCode: themesTable.code,
+        themeKey: formsTable.themeKey,
       })
       .from(formsTable)
       .leftJoin(submissionsTable, eq(formsTable.formId, submissionsTable.formId))
-      .leftJoin(themesTable, eq(formsTable.themeId, themesTable.id))
       .where(eq(formsTable.createdBy, createdBy))
-      .groupBy(formsTable.formId, themesTable.id)
+      .groupBy(formsTable.formId)
       .orderBy(desc(formsTable.createdAt));
 
     return forms;
@@ -426,11 +424,9 @@ class formService {
         allowedDomains: formsTable.allowedDomains,
         isPasswordProtected: formsTable.isPasswordProtected,
         password: formsTable.password,
-        themeId: formsTable.themeId,
-        themeCode: themesTable.code,
+        themeKey: formsTable.themeKey,
       })
       .from(formsTable)
-      .leftJoin(themesTable, eq(formsTable.themeId, themesTable.id))
       .where(eq(formsTable.slug, slug));
 
     if (!forms || forms.length === 0) {
@@ -513,8 +509,7 @@ class formService {
     return {
       formId: form.formId,
       fields,
-      themeId: form.themeId,
-      themeCode: form.themeCode,
+      themeKey: form.themeKey,
     };
   }
 
@@ -907,33 +902,19 @@ class formService {
   }
 
   public async getThemes() {
-    const themes = await db
-      .select({
-        id: themesTable.id,
-        name: themesTable.name,
-      })
-      .from(themesTable);
-    return themes;
+    return THEMES_STORE;
   }
 
-  public async getTheme(themeId: string) {
-    const themes = await db
-      .select({
-        id: themesTable.id,
-        name: themesTable.name,
-        code: themesTable.code,
-      })
-      .from(themesTable)
-      .where(eq(themesTable.id, themeId));
-
-    if (!themes || themes.length === 0) {
+  public async getTheme(themeKey: string) {
+    const theme = getThemeByKey(themeKey);
+    if (!theme) {
       throw new Error("Theme not found");
     }
-    return themes[0]!;
+    return theme;
   }
 
-  public async updateFormTheme(payload: { formId: string; createdBy: string; themeId: string | null }) {
-    const { formId, createdBy, themeId } = payload;
+  public async updateFormTheme(payload: { formId: string; createdBy: string; themeKey: string | null }) {
+    const { formId, createdBy, themeKey } = payload;
 
     // Verify form belongs to creator
     const form = await db
@@ -947,7 +928,7 @@ class formService {
 
     await db
       .update(formsTable)
-      .set({ themeId })
+      .set({ themeKey })
       .where(eq(formsTable.formId, formId));
 
     return { success: true };

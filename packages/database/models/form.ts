@@ -1,6 +1,5 @@
 import { pgTable, uuid, varchar, boolean, timestamp, pgEnum, text } from "drizzle-orm/pg-core";
 import { usersTable } from './user';
-import { themesTable } from './theme';
 
 export const visibilityEnum = pgEnum('visibility_enum',['PUBLIC','PRIVATE','UNLISTED'])
 
@@ -18,7 +17,7 @@ export const formsTable = pgTable("forms", {
   password:varchar('password',{length:255}).default(''),
 
   createdBy: uuid('created_by').references(() => usersTable.id, { onDelete: 'cascade' }),
-  themeId: uuid('theme_id').references(() => themesTable.id, { onDelete: 'set null' }),
+  themeKey: varchar('theme_key', { length: 50 }).default('lightMode'),
   validTill: timestamp('valid_till'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),

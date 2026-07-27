@@ -329,8 +329,8 @@ export const formsRouter = router({
     .input(getThemeInputModel)
     .output(getThemeOutputModel)
     .mutation(async ({ input }) => {
-      const { themeId } = input;
-      const theme = await formService.getTheme(themeId);
+      const { themeKey } = input;
+      const theme = await formService.getTheme(themeKey);
       return theme;
     }),
 
@@ -346,12 +346,12 @@ export const formsRouter = router({
     .output(updateFormThemeOutputModel)
     .mutation(async ({ input, ctx }) => {
       const { id: createdBy } = await userService.verifyUserToken(ctx.user.token);
-      const { formId, themeId } = input;
+      const { formId, themeKey } = input;
 
       const { success } = await formService.updateFormTheme({
         formId,
         createdBy,
-        themeId,
+        themeKey,
       });
 
       return { success };

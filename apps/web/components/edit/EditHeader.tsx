@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import type { QuestionItem, FieldType } from "~/app/dashboard/edit/[formId]/page";
 
-export function EditHeader({ activeTab, setActiveTab, handleBackToDashboard, isEditingTitle, editedTitleVal, setEditedTitleVal, handleTitleSubmit, setIsEditingTitle, currentForm, activeThemeCss, selectedThemeId, handleThemeChange, themes, saveStatus, isSaving, saveForm, isPublishing, publishStatus, publishFormAsync, handleDownloadCSV, mounted, showProfileMenu, setShowProfileMenu, handleLogout, setShowPublishPanel, user, setIsPreviewOpen, setPreviewStepIndex, setPreviewAnswers, questions, analytics, formId }: any) {
+export function EditHeader({ activeTab, setActiveTab, handleBackToDashboard, isEditingTitle, editedTitleVal, setEditedTitleVal, handleTitleSubmit, setIsEditingTitle, currentForm, selectedThemeKey, handleThemeChange, themes, saveStatus, isSaving, saveForm, isPublishing, publishStatus, publishFormAsync, handleDownloadCSV, mounted, showProfileMenu, setShowProfileMenu, handleLogout, setShowPublishPanel, user, setIsPreviewOpen, setPreviewStepIndex, setPreviewAnswers, questions, analytics, formId }: any) {
   return (
         <nav className="w-full bg-white/60 p-4 flex flex-col gap-4 border-b border-black/10 shrink-0">
           {/* Row 1 */}
@@ -131,7 +131,7 @@ export function EditHeader({ activeTab, setActiveTab, handleBackToDashboard, isE
               <div className="border-l border-black/10 h-4 mx-1"></div>
               <div className="relative flex items-center">
                 <select
-                  value={selectedThemeId || ""}
+                  value={selectedThemeKey || ""}
                   onChange={(e) => handleThemeChange(e.target.value || null)}
                   className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer rounded-none border-none bg-white/60 text-[#666] hover:text-[#111] hover:bg-black/5 outline-none"
                 >
