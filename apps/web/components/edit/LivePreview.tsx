@@ -41,9 +41,21 @@ interface LivePreviewProps {
   setQuestions: (qs: any) => void;
   setIsDirty: (val: boolean) => void;
   isDirtyRef: any;
+  selectedThemeKey?: string | null;
 }
 
-export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQuestionChoices, previewSliderValue, setPreviewSliderValue, isDropdownPreviewOpen, setIsDropdownPreviewOpen, selectedDropdownValue, setSelectedDropdownValue, activeAbsoluteIdx, isDirty, updateQuestion, getSliderBoundaries, saveStatus, saveErrorMessage, setShowAddContent, countryCodes, isPhoneDropdownOpen, setIsPhoneDropdownOpen, selectedPhoneCountry, setSelectedPhoneCountry, phoneSearchQuery, setPhoneSearchQuery, activeChildren, questions, deleteQuestion, handleAddSubQuestion, setQuestions, setIsDirty, isDirtyRef }: LivePreviewProps) {
+export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQuestionChoices, previewSliderValue, setPreviewSliderValue, isDropdownPreviewOpen, setIsDropdownPreviewOpen, selectedDropdownValue, setSelectedDropdownValue, activeAbsoluteIdx, isDirty, updateQuestion, getSliderBoundaries, saveStatus, saveErrorMessage, setShowAddContent, countryCodes, isPhoneDropdownOpen, setIsPhoneDropdownOpen, selectedPhoneCountry, setSelectedPhoneCountry, phoneSearchQuery, setPhoneSearchQuery, activeChildren, questions, deleteQuestion, handleAddSubQuestion, setQuestions, setIsDirty, isDirtyRef, selectedThemeKey }: LivePreviewProps) {
+  const getThemeClasses = (key?: string | null) => {
+    switch (key) {
+      case "shellMode":
+        return "bg-black text-green-500 font-mono ring-2 ring-green-900";
+      case "darkMode":
+        return "bg-[#111] text-white ring-2 ring-neutral-800";
+      case "lightMode":
+      default:
+        return "bg-white text-black ring-2 ring-neutral-200 shadow-sm";
+    }
+  };
   return (
           <div className="flex-1 flex flex-col h-full overflow-y-auto bg-transparent relative">
 
@@ -92,17 +104,30 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                   </div>
 
                   {/* Typeform Live Slide Preview Canvas */}
-                  <div className="preview-container flex-1 flex flex-col gap-6 py-10 px-10 justify-center relative">
-                    <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+                  <div className={`preview-container flex-1 flex flex-col gap-6 py-10 px-10 ${selectedThemeKey === "shellMode" ? "justify-start pt-16" : "justify-center"} relative rounded-md transition-colors overflow-hidden ${getThemeClasses(selectedThemeKey)}`}>
+                    {selectedThemeKey === "shellMode" && (
+                      <div className="absolute top-0 left-0 right-0 flex items-center justify-between bg-[#1a1a1a] px-4 py-2 border-b border-[#333] z-10">
+                        <div className="flex gap-2 w-1/4">
+                          <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                          <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                          <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                        </div>
+                        <div className="w-2/4 text-center text-[10px] font-mono text-green-600 select-none">
+                          user@formz:~
+                        </div>
+                        <div className="w-1/4 flex justify-end"></div>
+                      </div>
+                    )}
+                    <div className={`flex flex-col gap-4 w-full mt-4 ${selectedThemeKey === "shellMode" ? "max-w-full" : "max-w-2xl mx-auto"}`}>
                       
                       {/* Live editable question title & description */}
                       {activeQuestion.fieldType === "THANK_YOU" ? (
-                        <div className="flex flex-col items-center justify-center text-center py-8 w-full animate-fade-in">
-                          <h1 className="text-[32px] font-bold text-[#111] leading-tight uppercase">
+                        <div className={`flex flex-col py-8 w-full animate-fade-in ${selectedThemeKey === "shellMode" ? "items-start text-left" : "items-center justify-center text-center"}`}>
+                          <h1 className="text-[32px] font-bold text-inherit leading-tight uppercase">
                             Thank You!
                           </h1>
                           {activeQuestion.description && (
-                            <p className="text-[16px] font-normal text-[#666] leading-relaxed whitespace-pre-wrap mt-4 max-w-lg">
+                            <p className="text-[16px] font-normal text-inherit opacity-70 leading-relaxed whitespace-pre-wrap mt-4 max-w-lg">
                               {activeQuestion.description}
                             </p>
                           )}
@@ -114,36 +139,47 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                             <span className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none select-none">
                               <Sliders className="w-3 h-3" /> Edit question label
                             </span>
-                            <div className="relative inline-block w-full max-w-full">
-                              {/* Invisible mirror span to measure text width & height for wrapping */}
-                              <span className="invisible whitespace-pre-wrap break-words text-[32px] font-bold px-1 select-none pointer-events-none block min-h-[3.5rem] pb-2 w-full leading-tight">
-                                {activeQuestion.label || "Enter question title..."}
-                              </span>
-                              <textarea
-                                value={activeQuestion.label}
-                                onChange={(e) => updateQuestion(activeAbsoluteIdx, { label: e.target.value })}
-                                className="absolute inset-0 text-[32px] font-bold bg-transparent border-b border-transparent hover:border-black/10-active focus:border-primary transition-colors w-full focus-visible:outline-none py-1 leading-tight text-[#111] pr-8 resize-none overflow-hidden"
-                                placeholder="Enter question title..."
-                              />
-                              {activeQuestion.isRequired && (
-                                <span className="absolute -top-1 -right-2.5 text-error font-extrabold text-2xl select-none" title="Required Field">
-                                  *
-                                </span>
+                            <div className={`relative flex w-full max-w-full ${selectedThemeKey === "shellMode" ? "items-start gap-2" : ""}`}>
+                              {selectedThemeKey === "shellMode" && (
+                                <span className="text-sm md:text-base font-mono font-normal select-none mt-1 whitespace-nowrap"><span className="text-green-500 font-bold">formz</span><span className="text-white">:</span><span className="text-blue-400 font-bold">~/questions/{activeIdx + 1}</span><span className="text-white">/</span></span>
                               )}
+                              <div className="relative flex-1">
+                                {/* Invisible mirror span to measure text width & height for wrapping */}
+                                <span className={`invisible whitespace-pre-wrap break-words px-1 select-none pointer-events-none block min-h-[3.5rem] pb-2 w-full leading-tight ${selectedThemeKey === "shellMode" ? "text-sm md:text-base font-mono font-normal" : "text-[32px] font-bold"}`}>
+                                  {activeQuestion.label || "Enter question title..."}
+                                </span>
+                                <textarea
+                                  value={activeQuestion.label}
+                                  onChange={(e) => updateQuestion(activeAbsoluteIdx, { label: e.target.value })}
+                                  className={`absolute inset-0 bg-transparent border-b transition-colors w-full focus-visible:outline-none py-1 leading-tight text-inherit pr-8 resize-none overflow-hidden ${selectedThemeKey === "shellMode" ? "border-transparent focus:border-transparent text-sm md:text-base font-mono font-normal text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "border-transparent hover:border-black/10-active focus:border-primary text-[32px] font-bold"}`}
+                                  placeholder="Enter question title..."
+                                />
+                                {activeQuestion.isRequired && (
+                                  <span className="absolute -top-1 -right-2.5 text-error font-extrabold text-2xl select-none" title="Required Field">
+                                    *
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
                           {/* Live question description preview */}
                           {activeQuestion.description && (
-                            <p className="text-[16px] font-normal text-[#666] leading-relaxed max-w-2xl animate-fade-in whitespace-pre-wrap mt-2">
+                            <p className="text-[16px] font-normal text-[#666] leading-relaxed  animate-fade-in whitespace-pre-wrap mt-0">
                               {activeQuestion.description}
                             </p>
                           )}
                         </>
                       )}
 
-                      {/* Render the appropriate live input placeholder type */}
-                      <div className="mt-8">
+                                        {/* Render the appropriate live input placeholder type */}
+                  <div className={selectedThemeKey === "shellMode" ? "flex flex-col md:flex-row md:items-start mt-2" : "mt-8"}>
+                    {selectedThemeKey === "shellMode" && (
+                      <div className="font-mono text-sm md:text-base flex items-start shrink-0 mr-3">
+                        <span className="select-none whitespace-nowrap"><span className="text-green-500 font-bold">formz</span><span className="text-white">:</span><span className="text-blue-400 font-bold">~/questions/{activeIdx + 1}/answer</span><span className="text-white">$</span></span>
+                      </div>
+                    )}
+                    <div className="flex-1 w-full">
                         
                         {/* 1. SHORT_TEXT */}
                         {activeQuestion.fieldType === "SHORT_TEXT" && (
@@ -162,15 +198,17 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
 
                         {/* 2. LONG_TEXT */}
                         {activeQuestion.fieldType === "LONG_TEXT" && (
-                          <div className="flex flex-col gap-2">
-                            <div className="border border-black/10 rounded-none p-4 bg-transparent/50 w-full min-h-24">
-                              <p className="text-sm text-[#888] select-none">
+                          <div className={selectedThemeKey === "shellMode" ? "flex flex-col" : "flex flex-col gap-2"}>
+                            <div className={selectedThemeKey === "shellMode" ? "w-full" : "border border-black/10 rounded-none p-4 bg-transparent/50 w-full min-h-24"}>
+                              <p className={selectedThemeKey === "shellMode" ? "text-sm md:text-base font-mono text-[#666] select-none leading-snug" : "text-sm text-[#888] select-none"}>
                                 {activeQuestion.placeholder || "Type your long response here..."}
                               </p>
                             </div>
-                            <span className="text-[10px] font-bold text-[#888] uppercase tracking-wider mt-1.5">
-                              shift + enter for new line
-                            </span>
+                            {selectedThemeKey !== "shellMode" && (
+                              <span className="text-[10px] font-bold text-[#888] uppercase tracking-wider mt-1.5">
+                                shift + enter for new line
+                              </span>
+                            )}
                           </div>
                         )}
 
@@ -273,14 +311,14 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                                 <button
                                   type="button"
                                   onClick={() => setIsPhoneDropdownOpen(!isPhoneDropdownOpen)}
-                                  className="text-xs font-black px-2.5 py-1.5 border border-black/10 text-neutral-900  tracking-widest bg-transparent rounded-none flex items-center gap-1.5 hover:bg-neutral-100  cursor-pointer min-w-[95px] justify-between uppercase transition-colors"
+                                  className="text-xs font-black px-2.5 py-1.5 border border-black/10 text-inherit  tracking-widest bg-transparent rounded-none flex items-center gap-1.5 hover:bg-neutral-100  cursor-pointer min-w-[95px] justify-between uppercase transition-colors"
                                 >
                                   {(() => {
                                     const c = countryCodes.find((ct) => ct.code === selectedPhoneCountry);
                                     return (
                                       <>
                                         <span>{c?.flag} {c?.code}</span>
-                                        <span className="text-[10px] text-neutral-500  font-bold">{c?.dialCode}</span>
+                                        <span className="text-[10px] text-inherit opacity-70  font-bold">{c?.dialCode}</span>
                                       </>
                                     );
                                   })()}
@@ -298,7 +336,7 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                                       value={phoneSearchQuery}
                                       onChange={(e) => setPhoneSearchQuery(e.target.value)}
                                       placeholder="Type country name or code..."
-                                      className="w-full text-xs border border-black/10 px-2 py-1.5 focus-visible:outline-none rounded-none bg-transparent text-neutral-900  font-bold"
+                                      className="w-full text-xs border border-black/10 px-2 py-1.5 focus-visible:outline-none rounded-none bg-transparent text-inherit  font-bold"
                                     />
                                     
                                     <div className="flex flex-col gap-0.5 overflow-y-auto max-h-40 pr-1 border-t border-neutral-200  pt-1.5">
@@ -322,12 +360,12 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                                               setIsPhoneDropdownOpen(false);
                                               setPhoneSearchQuery("");
                                             }}
-                                            className="w-full text-left px-2 py-1.5 text-xs hover:bg-neutral-900 hover:text-[#111]   flex items-center justify-between transition-colors rounded-none cursor-pointer bg-transparent border-none text-neutral-900 "
+                                            className="w-full text-left px-2 py-1.5 text-xs hover:bg-neutral-900 hover:text-[#111]   flex items-center justify-between transition-colors rounded-none cursor-pointer bg-transparent border-none text-inherit "
                                           >
                                             <span className="font-bold uppercase tracking-tight truncate max-w-[130px]">
                                               {c.flag} {c.name}
                                             </span>
-                                            <span className="text-[9px] text-neutral-500  font-black">
+                                            <span className="text-[9px] text-inherit opacity-70  font-black">
                                               ({c.code}) {c.dialCode}
                                             </span>
                                           </button>
@@ -397,12 +435,12 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                             <button
                               type="button"
                               onClick={() => setIsDropdownPreviewOpen(!isDropdownPreviewOpen)}
-                              className="w-full flex items-center justify-between border border-black/10 p-3 text-xs font-black uppercase tracking-widest bg-transparent hover:bg-neutral-100  transition-colors cursor-pointer rounded-none text-left text-neutral-900 "
+                              className="w-full flex items-center justify-between border border-black/10 p-3 text-xs font-black uppercase tracking-widest bg-transparent hover:bg-neutral-100  transition-colors cursor-pointer rounded-none text-left text-inherit "
                             >
                               <span>
                                 {selectedDropdownValue || "Select an option..."}
                               </span>
-                              <ChevronDown className="w-4 h-4 text-neutral-900  shrink-0" />
+                              <ChevronDown className="w-4 h-4 text-inherit  shrink-0" />
                             </button>
 
                             {/* Dropdown Options Popover Menu */}
@@ -419,7 +457,7 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                                       setSelectedDropdownValue(opt);
                                       setIsDropdownPreviewOpen(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 text-xs font-bold uppercase tracking-wider hover:bg-neutral-900 hover:text-[#111]   transition-colors rounded-none cursor-pointer bg-transparent border-none text-neutral-900 "
+                                    className="w-full text-left px-3 py-2 text-xs font-bold uppercase tracking-wider hover:bg-neutral-900 hover:text-[#111]   transition-colors rounded-none cursor-pointer bg-transparent border-none text-inherit "
                                   >
                                     {opt}
                                   </button>
@@ -494,7 +532,7 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                                       (child.clientTempId && item.clientTempId === child.clientTempId)
                                     );
                                     return (
-                                      <div key={child?.id || child.clientTempId} className="border-2 border-neutral-200  p-4 flex flex-col gap-3 relative bg-neutral-50/50  text-neutral-900 ">
+                                      <div key={child?.id || child.clientTempId} className="border-2 border-neutral-200  p-4 flex flex-col gap-3 relative bg-neutral-50/50  text-inherit ">
                                         <div className="flex justify-between items-center border-b border-neutral-200  pb-2">
                                           <span className="text-[10px] font-black uppercase tracking-widest text-[#666] flex items-center gap-1.5">
                                             {child.fieldType === "EMAIL" && <Mail className="w-3.5 h-3.5 text-blue-600" />}
@@ -632,7 +670,7 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                         {activeQuestion.fieldType === "IMAGE" && (
                           <div className="border-2 border-dashed border-neutral-300  p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50  max-w-md">
                             <ImageIcon className="w-8 h-8 text-neutral-400" />
-                            <span className="text-xs font-black uppercase tracking-widest text-neutral-900 ">Upload Image File</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-inherit ">Upload Image File</span>
                             <span className="text-[9px] text-[#666] uppercase tracking-wider">Drag and drop or browse files</span>
                           </div>
                         )}
@@ -641,7 +679,7 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                         {activeQuestion.fieldType === "VIDEO" && (
                           <div className="border-2 border-dashed border-neutral-300  p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50  max-w-md">
                             <VideoIcon className="w-8 h-8 text-neutral-400" />
-                            <span className="text-xs font-black uppercase tracking-widest text-neutral-900 ">Upload Video Attachment</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-inherit ">Upload Video Attachment</span>
                             <span className="text-[9px] text-[#666] uppercase tracking-wider">Supports MP4, WebM up to 10MB</span>
                           </div>
                         )}
@@ -650,7 +688,7 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                         {activeQuestion.fieldType === "AUDIO" && (
                           <div className="border-2 border-dashed border-neutral-300  p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50  max-w-md">
                             <AudioIcon className="w-8 h-8 text-neutral-400" />
-                            <span className="text-xs font-black uppercase tracking-widest text-neutral-900 ">Record Live or Upload sound</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-inherit ">Record Live or Upload sound</span>
                             <span className="text-[9px] text-[#666] uppercase tracking-wider">Supports MP3, WAV, WebM up to 10MB</span>
                           </div>
                         )}
@@ -659,11 +697,12 @@ export function LivePreview({ activeQuestion, activeIdx, topLevelQuestions, getQ
                         {activeQuestion.fieldType === "FILE" && (
                           <div className="border-2 border-dashed border-neutral-300  p-8 flex flex-col items-center justify-center gap-2 bg-neutral-100/50  max-w-md">
                             <FileIcon className="w-8 h-8 text-neutral-400" />
-                            <span className="text-xs font-black uppercase tracking-widest text-neutral-900 ">Upload Document attachment</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-inherit ">Upload Document attachment</span>
                             <span className="text-[9px] text-[#666] uppercase tracking-wider">Supports PDF up to 200KB</span>
                           </div>
                         )}
 
+                      </div>
                       </div>
                     </div>
                   </div>

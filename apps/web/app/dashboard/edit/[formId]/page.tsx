@@ -1492,7 +1492,7 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
           />
 
           {/* Center Column: Live Slide Editor Preview */}
-          <LivePreview {...{ activeQuestion, activeIdx, topLevelQuestions, getQuestionChoices, previewSliderValue, setPreviewSliderValue, isDropdownPreviewOpen, setIsDropdownPreviewOpen, selectedDropdownValue, setSelectedDropdownValue, activeAbsoluteIdx, isDirty, updateQuestion, getSliderBoundaries, activeChildren, questions, saveStatus, saveErrorMessage, showAddContent, setShowAddContent, deleteQuestion, handleAddSubQuestion, setQuestions, setIsDirty, isDirtyRef, countryCodes, isPhoneDropdownOpen, setIsPhoneDropdownOpen, selectedPhoneCountry, setSelectedPhoneCountry, phoneSearchQuery, setPhoneSearchQuery }} />
+          <LivePreview {...{ activeQuestion, activeIdx, topLevelQuestions, getQuestionChoices, previewSliderValue, setPreviewSliderValue, isDropdownPreviewOpen, setIsDropdownPreviewOpen, selectedDropdownValue, setSelectedDropdownValue, activeAbsoluteIdx, isDirty, updateQuestion, getSliderBoundaries, activeChildren, questions, saveStatus, saveErrorMessage, showAddContent, setShowAddContent, deleteQuestion, handleAddSubQuestion, setQuestions, setIsDirty, isDirtyRef, countryCodes, isPhoneDropdownOpen, setIsPhoneDropdownOpen, selectedPhoneCountry, setSelectedPhoneCountry, phoneSearchQuery, setPhoneSearchQuery, selectedThemeKey }} />
           {/* Right Column: Slide Settings */}
           <SettingsSidebar
             activeQuestion={activeQuestion}
@@ -1752,3 +1752,5 @@ export default function EditFormPage(props: { params: Promise<{ formId: string }
     </div>
   );
 }
+
+
